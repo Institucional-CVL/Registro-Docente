@@ -24,6 +24,12 @@
             color: #b91c1c !important;
         }
 
+        .falta-estilo {
+            background-color: #fef2f2 !important;
+            border-color: #fca5a5 !important;
+            color: #b91c1c !important;
+        }
+
         [contenteditable="true"]:hover {
             outline: 1px dashed rgba(255, 255, 255, 0.5);
             border-radius: 4px;
@@ -38,18 +44,13 @@
 </head>
 <body class="pb-28">
 
-    <!-- PANTALLA DE INICIO DE SESIÓN MEJORADA (DISEÑO INSTITUCIONAL CON BORDES Y FRANJAS AZULES) -->
+    <!-- PANTALLA DE INICIO DE SESIÓN MEJORADA -->
     <div id="pantalla-login" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop');">
-        <!-- Capa oscura semitransparente -->
         <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/90 via-blue-900/85 to-indigo-900/90 backdrop-blur-sm"></div>
         
-        <!-- Tarjeta principal con bordes azules dinámicos y sombra profunda -->
         <div class="relative bg-white/95 backdrop-blur-md rounded-[2.5rem] shadow-[0_0_50px_rgba(30,58,138,0.4)] p-8 max-w-sm w-full text-center space-y-6 border-2 border-blue-300/60 mt-10 overflow-hidden">
-            
-            <!-- Franjas decorativas superiores con los colores institucionales -->
             <div class="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-blue-700 via-indigo-600 to-amber-400"></div>
 
-            <!-- Sello de la Institución con marco doble y destello azul/dorado -->
             <div class="w-28 h-28 mx-auto bg-gradient-to-br from-blue-50 via-white to-indigo-100 rounded-full shadow-xl flex items-center justify-center border-4 border-blue-600 relative -mt-14 overflow-hidden p-2 ring-4 ring-blue-200/50">
                 <img src="logo.png" alt="Logo Institución" class="max-h-full max-w-full object-contain drop-shadow-sm">
             </div>
@@ -59,7 +60,6 @@
                     <i class="fa-solid fa-id-card text-blue-600 mr-1"></i> Portal Docente
                 </span>
                 
-                <!-- Nombre de la Institución -->
                 <h1 class="text-2xl font-black text-gray-900 mt-3 leading-tight">
                     Unidad Educativa <br>
                     <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 text-xl font-extrabold">Clemente Vallejo Larrea</span>
@@ -71,14 +71,12 @@
             </div>
 
             <div class="pt-1">
-                <!-- Botón de Google con bordes y hover azulado mejorado -->
                 <button onclick="iniciarSesionConGoogle()" class="w-full bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-100/50 text-indigo-950 font-bold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-3 text-sm transition-all duration-300 active:scale-95 group">
                     <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google Logo" class="w-6 h-6 transition-transform group-hover:scale-110"> 
                     Ingresar con Gmail
                 </button>
             </div>
             
-            <!-- Texto de seguridad en la parte inferior -->
             <div class="text-[10px] text-gray-400 font-medium pt-1 border-t border-gray-100">
                 <i class="fa-solid fa-shield-halved text-blue-600 mr-1"></i> Acceso exclusivo para personal docente.
             </div>
@@ -87,7 +85,6 @@
 
     <!-- CONTENIDO PRINCIPAL -->
     <div id="app-contenido" class="hidden">
-        <!-- Header Banner -->
         <header class="bg-indigo-700 text-white p-4 shadow-lg sticky top-0 z-50">
             <div class="max-w-md mx-auto flex justify-between items-center">
                 <div>
@@ -109,6 +106,16 @@
 
         <main class="max-w-md mx-auto p-4 space-y-4">
 
+            <!-- Pestañas de Navegación (Notas / Evidencias) -->
+            <div class="flex rounded-2xl bg-blue-100/70 p-1 border border-blue-200">
+                <button onclick="cambiarPestana('notas')" id="btnPestanaNotas" class="flex-1 py-2 text-xs font-bold rounded-xl bg-indigo-600 text-white shadow transition">
+                    <i class="fa-solid fa-clipboard-user mr-1"></i> Calificaciones y Asistencia
+                </button>
+                <button onclick="cambiarPestana('evidencias')" id="btnPestanaEvidencias" class="flex-1 py-2 text-xs font-bold rounded-xl text-indigo-900 hover:bg-blue-200/50 transition">
+                    <i class="fa-solid fa-camera mr-1"></i> Evidencias en Imagen
+                </button>
+            </div>
+
             <!-- Barra de Información del Usuario -->
             <div class="bg-blue-50/70 border border-blue-200 p-3.5 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
                 <div class="flex items-center gap-2 min-w-0">
@@ -120,103 +127,119 @@
                 </div>
             </div>
 
-            <!-- Carga rápida de Excel -->
-            <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
-                <div class="text-xs">
-                    <span class="font-bold text-indigo-900 block">📁 Cargar Nómina desde Excel</span>
-                    <span class="text-indigo-700">Sube un Excel para actualizar alumnos</span>
-                </div>
-                <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl cursor-pointer shadow active:scale-95 transition flex-shrink-0">
-                    <i class="fa-solid fa-upload mr-1"></i> Subir
-                    <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="cargarArchivoExcel(event)">
-                </label>
-            </div>
-
-            <!-- Gestión de Asignaturas -->
-            <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
-                <div class="flex items-center justify-between mb-1">
-                    <label class="block text-xs font-bold text-indigo-900 uppercase">Gestión de Asignaturas</label>
-                    <div class="flex gap-1">
-                        <button type="button" onclick="crearNuevaAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition">
-                            <i class="fa-solid fa-plus"></i> Asignatura
-                        </button>
-                        <button type="button" onclick="eliminarAsignaturaActual()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2 py-1 rounded-lg text-[11px] transition shadow-sm" title="Eliminar asignatura actual">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+            <!-- CONTENEDOR VISTA CALIFICACIONES -->
+            <div id="vistaNotas" class="space-y-4">
+                <!-- Carga rápida de Excel -->
+                <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+                    <div class="text-xs">
+                        <span class="font-bold text-indigo-900 block">📁 Cargar Nómina desde Excel</span>
+                        <span class="text-indigo-700">Sube un Excel para actualizar alumnos</span>
                     </div>
-                </div>
-                <div>
-                    <select id="selectAsignatura" onchange="alCambiarAsignatura()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                    </select>
-                </div>
-            </div>
-
-            <!-- Selector y Gestión de Paralelos Independientes por Asignatura -->
-            <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
-                <div class="flex items-center justify-between mb-1">
-                    <label class="block text-xs font-bold text-indigo-900 uppercase">Paralelos de esta Asignatura</label>
-                    <div class="flex gap-1">
-                        <button type="button" onclick="crearNuevoParaleloAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition">
-                            <i class="fa-solid fa-plus"></i> Paralelo
-                        </button>
-                        <button type="button" onclick="eliminarParaleloActualAsignatura()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2 py-1 rounded-lg text-[11px] transition shadow-sm" title="Quitar este paralelo de esta asignatura">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </div>
+                    <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl cursor-pointer shadow active:scale-95 transition flex-shrink-0">
+                        <i class="fa-solid fa-upload mr-1"></i> Subir
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="cargarArchivoExcel(event)">
+                    </label>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <select id="selectParalelo" onchange="alCambiarSeleccion()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                        </select>
+                <!-- Gestión de Asignaturas -->
+                <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold text-indigo-900 uppercase">Gestión de Asignaturas</label>
+                        <div class="flex gap-1">
+                            <button type="button" onclick="crearNuevaAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition">
+                                <i class="fa-solid fa-plus"></i> Asignatura
+                            </button>
+                            <button type="button" onclick="eliminarAsignaturaActual()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2 py-1 rounded-lg text-[11px] transition shadow-sm" title="Eliminar asignatura actual">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
                     </div>
                     <div>
-                        <select id="selectTrimestre" onchange="alCambiarSeleccion()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                            <option value="1er Trimestre">1er Trimestre</option>
-                            <option value="2do Trimestre">2do Trimestre</option>
-                            <option value="3er Trimestre">3er Trimestre</option>
+                        <select id="selectAsignatura" onchange="alCambiarAsignatura()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
                         </select>
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-indigo-900 uppercase mb-1">📅 Fecha de Evaluación / Clase</label>
-                    <input type="date" id="inputFecha" onchange="guardarFechaCambiada()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                </div>
-            </div>
+                <!-- Selector y Gestión de Paralelos -->
+                <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold text-indigo-900 uppercase">Paralelos de esta Asignatura</label>
+                        <div class="flex gap-1">
+                            <button type="button" onclick="crearNuevoParaleloAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition">
+                                <i class="fa-solid fa-plus"></i> Paralelo
+                            </button>
+                            <button type="button" onclick="eliminarParaleloActualAsignatura()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2 py-1 rounded-lg text-[11px] transition shadow-sm" title="Quitar este paralelo">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
 
-            <!-- Gestión de Insumos -->
-            <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
-                <label class="block text-xs font-bold text-indigo-900 uppercase">Gestión de Insumos</label>
-                
-                <div class="flex gap-2">
-                    <select id="selectInsumos" onchange="alCambiarInsumoSelect()" class="w-full bg-white border border-indigo-200 text-indigo-950 font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                    </select>
-                    <button type="button" onclick="agregarNuevoInsumo()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0">
-                        <i class="fa-solid fa-plus"></i> Insumo
-                    </button>
-                    <button type="button" onclick="eliminarInsumoActual()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                </div>
-            </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <select id="selectParalelo" onchange="alCambiarSeleccion()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                            </select>
+                        </div>
+                        <div>
+                            <select id="selectTrimestre" onchange="alCambiarSeleccion()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                                <option value="1er Trimestre">1er Trimestre</option>
+                                <option value="2do Trimestre">2do Trimestre</option>
+                                <option value="3er Trimestre">3er Trimestre</option>
+                            </select>
+                        </div>
+                    </div>
 
-            <!-- Lista de Estudiantes -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-100 flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Nómina</span>
-                        <button type="button" onclick="agregarEstudianteManual()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded-lg text-[11px] shadow flex items-center gap-1 active:scale-95 transition">
-                            <i class="fa-solid fa-user-plus"></i> + Alumno
+                    <div>
+                        <label class="block text-xs font-bold text-indigo-900 uppercase mb-1">📅 Fecha de Evaluación / Clase</label>
+                        <input type="date" id="inputFecha" onchange="guardarFechaCambiada()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                    </div>
+                </div>
+
+                <!-- Gestión de Insumos -->
+                <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
+                    <label class="block text-xs font-bold text-indigo-900 uppercase">Gestión de Insumos</label>
+                    
+                    <div class="flex gap-2">
+                        <select id="selectInsumos" onchange="alCambiarInsumoSelect()" class="w-full bg-white border border-indigo-200 text-indigo-950 font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                        </select>
+                        <button type="button" onclick="agregarNuevoInsumo()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0">
+                            <i class="fa-solid fa-plus"></i> Insumo
+                        </button>
+                        <button type="button" onclick="eliminarInsumoActual()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0">
+                            <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </div>
-                    <div class="text-right">
-                        <span id="totalAlumnos" class="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full block">0 Alumnos</span>
-                        <span id="resumenAsistenciaContador" class="text-[10px] text-indigo-700 font-bold mt-0.5 block">asi: 0 | falt: 0</span>
+                </div>
+
+                <!-- Lista de Estudiantes -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-100 flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Nómina</span>
+                            <button type="button" onclick="agregarEstudianteManual()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded-lg text-[11px] shadow flex items-center gap-1 active:scale-95 transition">
+                                <i class="fa-solid fa-user-plus"></i> + Alumno
+                            </button>
+                        </div>
+                        <div class="text-right">
+                            <span id="totalAlumnos" class="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full block">0 Alumnos</span>
+                            <span id="resumenAsistenciaContador" class="text-[10px] text-indigo-700 font-bold mt-0.5 block">asi: 0 | falt: 0</span>
+                        </div>
+                    </div>
+                    
+                    <div id="listaEstudiantes" class="divide-y divide-gray-100">
                     </div>
                 </div>
-                
-                <div id="listaEstudiantes" class="divide-y divide-gray-100">
+            </div>
+
+            <!-- CONTENEDOR VISTA EVIDENCIAS FOTOGRÁFICAS -->
+            <div id="vistaEvidencias" class="space-y-4 hidden">
+                <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-2">
+                    <label class="block text-xs font-bold text-indigo-900 uppercase">📷 Evidencias Fotográficas de Trabajos</label>
+                    <p class="text-[11px] text-indigo-700">Sube una fotografía de evidencia por estudiante para registrar visualmente si realizó o no la actividad.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-4">
+                    <div id="listaEvidenciasEstudiantes" class="space-y-4">
+                    </div>
                 </div>
             </div>
 
@@ -306,11 +329,16 @@
                         notasGuardadas = data.notasGuardadasDB;
                         localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
                     }
+                    if (data.evidenciasDataDB) {
+                        evidenciasData = data.evidenciasDataDB;
+                        localStorage.setItem('evidenciasDataDB', JSON.stringify(evidenciasData));
+                    }
 
                     renderizarSelectAsignaturas();
                     renderizarSelectParalelos();
                     renderizarSelectInsumos();
                     cargarEstudiantesYNotas();
+                    renderizarEvidenciasEstudiantes();
                 }
             }).catch(err => {
                 console.error("Error al sincronizar con Firebase: ", err);
@@ -346,6 +374,30 @@
         let estudiantesData = JSON.parse(localStorage.getItem('estudiantesData')) || {};
         let listaInsumosPersonalizados = JSON.parse(localStorage.getItem('listaInsumosPersonalizados')) || {};
         let notasGuardadas = JSON.parse(localStorage.getItem('notasGuardadasDB')) || {};
+        let evidenciasData = JSON.parse(localStorage.getItem('evidenciasDataDB')) || {};
+
+        let pestanaActual = 'notas';
+
+        function cambiarPestana(pestana) {
+            pestanaActual = pestana;
+            const btnNotas = document.getElementById('btnPestanaNotas');
+            const btnEvidencias = document.getElementById('btnPestanaEvidencias');
+            const vistaNotas = document.getElementById('vistaNotas');
+            const vistaEvidencias = document.getElementById('vistaEvidencias');
+
+            if (pestana === 'notas') {
+                btnNotas.className = "flex-1 py-2 text-xs font-bold rounded-xl bg-indigo-600 text-white shadow transition";
+                btnEvidencias.className = "flex-1 py-2 text-xs font-bold rounded-xl text-indigo-900 hover:bg-blue-200/50 transition";
+                vistaNotas.classList.remove('hidden');
+                vistaEvidencias.classList.add('hidden');
+            } else {
+                btnEvidencias.className = "flex-1 py-2 text-xs font-bold rounded-xl bg-indigo-600 text-white shadow transition";
+                btnNotas.className = "flex-1 py-2 text-xs font-bold rounded-xl text-indigo-900 hover:bg-blue-200/50 transition";
+                vistaEvidencias.classList.remove('hidden');
+                vistaNotas.classList.add('hidden');
+                renderizarEvidenciasEstudiantes();
+            }
+        }
 
         function renderizarSelectAsignaturas(asigSeleccionada = null) {
             const select = document.getElementById('selectAsignatura');
@@ -515,12 +567,15 @@
             const idLimpio = estudiante.replace(/\s+/g, '_');
             const iconoVisto = document.getElementById(`visto_${idLimpio}`);
             const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
+            const contenedorFila = document.getElementById(`fila_est_${idLimpio}`);
 
             if (checkbox.checked) {
                 if (iconoVisto) iconoVisto.classList.remove('hidden');
                 if (checkAtraso) checkAtraso.checked = false;
+                if (contenedorFila) contenedorFila.classList.remove('falta-estilo');
             } else {
                 if (iconoVisto) iconoVisto.classList.add('hidden');
+                if (contenedorFila) contenedorFila.classList.add('falta-estilo');
             }
             actualizarContadorAsistenciaPantalla();
         }
@@ -529,10 +584,12 @@
             const idLimpio = estudiante.replace(/\s+/g, '_');
             const checkAsistencia = document.getElementById(`asis_${idLimpio}`);
             const iconoVisto = document.getElementById(`visto_${idLimpio}`);
+            const contenedorFila = document.getElementById(`fila_est_${idLimpio}`);
 
             if (checkbox.checked) {
                 if (checkAsistencia) checkAsistencia.checked = false;
                 if (iconoVisto) iconoVisto.classList.add('hidden');
+                if (contenedorFila) contenedorFila.classList.remove('falta-estilo');
             }
             actualizarContadorAsistenciaPantalla();
         }
@@ -664,6 +721,7 @@
                     listaInsumosPersonalizados[claveKey].push(limpio);
                     localStorage.setItem('listaInsumosPersonalizados', JSON.stringify(listaInsumosPersonalizados));
                 }
+                // Selecciona inmediatamente el insumo recién creado para que aparezca desplegado
                 renderizarSelectInsumos(limpio);
                 cargarEstudiantesYNotas();
             }
@@ -759,6 +817,7 @@
             const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
             const datosDelInsumo = notasGuardadas[claveDB] || {};
 
+            // Carga la fecha guardada del insumo seleccionado o la fecha de hoy por defecto si no tiene
             if (datosDelInsumo.fecha) {
                 document.getElementById('inputFecha').value = datosDelInsumo.fecha;
             } else {
@@ -774,24 +833,22 @@
 
                 const esAsis = asisExistente === "A" || asisExistente === true;
                 const esAtraso = asisExistente === "ATR";
+                const esFalta = asisExistente === "F";
                 const esNotaBaja = notaExistente !== "" && parseFloat(notaExistente) < 7;
 
                 contenedor.innerHTML += `
-                    <div class="p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none">
-                        <!-- Fila superior: Nombre FIJO a la izquierda y controles deslizantes a la derecha -->
+                    <div id="fila_est_${idLimpio}" class="p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none ${esFalta ? 'falta-estilo' : ''}">
                         <div class="flex items-center justify-between gap-3">
-                            <!-- Nombre fijo y completo (permite editar al hacer clic) -->
                             <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" onclick="editarNombreEstudiante('${nombre}')" title="Haz clic para editar el nombre">
                                 <span class="w-6 h-6 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xs flex-shrink-0">${num}</span>
                                 <span class="text-xs font-bold text-gray-800 uppercase leading-snug break-words">${nombre}</span>
                             </div>
 
-                            <!-- Controles deslizantes horizontalmente a la derecha -->
                             <div class="flex items-center gap-1.5 overflow-x-auto py-1 flex-shrink-0" style="scrollbar-width: none; -ms-overflow-style: none;">
                                 <label class="flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-xl border border-emerald-200 transition flex-shrink-0" title="Marcar Asistencia">
                                     <input type="checkbox" id="asis_${idLimpio}" data-estudiante-asis="${nombre}" class="asistencia-input hidden" ${esAsis ? 'checked' : ''} onchange="alternarVisto(this, '${nombre}')">
                                     <i id="visto_${idLimpio}" class="fa-solid fa-circle-check text-emerald-600 text-base ${esAsis ? '' : 'hidden'}"></i>
-                                    <span class="text-[10px] font-bold text-emerald-800">Asis</span>
+                                    <span class="text-[10px] font-bold text-emerald-800">${esAsis ? 'Asis' : '❌ FALT'}</span>
                                 </label>
 
                                 <label class="flex items-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-200 transition flex-shrink-0" title="Marcar Atraso">
@@ -807,7 +864,6 @@
                             </div>
                         </div>
 
-                        <!-- Observación debajo -->
                         <div>
                             <input type="text" placeholder="📝 Observación / Novedad..." value="${obsExistente}" data-estudiante-obs="${nombre}" class="obs-input w-full bg-gray-50 border border-gray-200 focus:border-indigo-400 focus:bg-white text-gray-700 text-[11px] rounded-lg px-2.5 py-1 focus:outline-none transition">
                         </div>
@@ -816,6 +872,81 @@
             });
 
             actualizarContadorAsistenciaPantalla();
+        }
+
+        function renderizarEvidenciasEstudiantes() {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const insumo = document.getElementById('selectInsumos').value;
+            const contenedorEvidencias = document.getElementById('listaEvidenciasEstudiantes');
+
+            if (!paralelo || !insumo) {
+                contenedorEvidencias.innerHTML = `<div class="text-center text-gray-400 text-xs py-4">Selecciona un paralelo e insumo para ver o subir evidencias.</div>`;
+                return;
+            }
+
+            let lista = estudiantesData[paralelo] || [];
+            lista = ordenarNomina(lista);
+            contenedorEvidencias.innerHTML = '';
+
+            if (lista.length === 0) {
+                contenedorEvidencias.innerHTML = `<div class="text-center text-gray-400 text-xs py-4">No hay estudiantes en este paralelo.</div>`;
+                return;
+            }
+
+            const claveEvidenciaDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
+            if (!evidenciasData[claveEvidenciaDB]) {
+                evidenciasData[claveEvidenciaDB] = {};
+            }
+
+            lista.forEach((nombre, idx) => {
+                const idLimpio = nombre.replace(/\s+/g, '_');
+                const imgGuardada = evidenciasData[claveEvidenciaDB][nombre] || "";
+
+                contenedorEvidencias.innerHTML += `
+                    <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 flex flex-col gap-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-gray-800">${idx + 1}. ${nombre}</span>
+                            <label class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg cursor-pointer shadow transition active:scale-95">
+                                <i class="fa-solid fa-camera mr-1"></i> Subir / Cambiar Foto
+                                <input type="file" accept="image/*" class="hidden" onchange="procesarImagenEvidencia(event, '${nombre}')">
+                            </label>
+                        </div>
+                        <div id="preview_${idLimpio}" class="flex items-center justify-center bg-white border-2 border-dashed border-gray-300 rounded-lg p-2 min-h-[90px]">
+                            ${imgGuardada ? `<img src="${imgGuardada}" class="max-h-32 rounded-lg object-contain shadow-sm">` : `<span class="text-[11px] text-gray-400">Sin evidencia fotográfica cargada</span>`}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function procesarImagenEvidencia(event, estudiante) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Img = e.target.result;
+                const asignatura = document.getElementById('selectAsignatura').value;
+                const paralelo = document.getElementById('selectParalelo').value;
+                const trimestre = document.getElementById('selectTrimestre').value;
+                const insumo = document.getElementById('selectInsumos').value;
+
+                const claveEvidenciaDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
+                if (!evidenciasData[claveEvidenciaDB]) {
+                    evidenciasData[claveEvidenciaDB] = {};
+                }
+                evidenciasData[claveEvidenciaDB][estudiante] = base64Img;
+                localStorage.setItem('evidenciasDataDB', JSON.stringify(evidenciasData));
+
+                const idLimpio = estudiante.replace(/\s+/g, '_');
+                const previewContainer = document.getElementById(`preview_${idLimpio}`);
+                if (previewContainer) {
+                    previewContainer.innerHTML = `<img src="${base64Img}" class="max-h-32 rounded-lg object-contain shadow-sm">`;
+                }
+            };
+            reader.readAsDataURL(file);
         }
 
         function guardarNotasMemoria() {
@@ -890,6 +1021,7 @@
                     estudiantesData: estudiantesData,
                     listaInsumosPersonalizados: listaInsumosPersonalizados,
                     notasGuardadasDB: notasGuardadas,
+                    evidenciasDataDB: evidenciasData,
                     ultimaActualizacion: new Date().toLocaleString()
                 }, { merge: true })
                 .then(() => {
