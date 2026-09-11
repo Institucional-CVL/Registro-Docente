@@ -3,107 +3,772 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Docente - Unidad Educativa Clemente Vallejo Larrea</title>
-    <!-- Tailwind CSS -->
+    <title>Registro de Notas y Asistencia - Institucional</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome para Iconos -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK Compat Core, Auth & Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
-        .falta-estilo {
-            background-color: rgba(254, 242, 242, 0.6);
-            border-left: 4px solid #ef4444;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+        
         .nota-baja {
-            color: #dc2626 !important;
-            border-color: #fca5a5 !important;
             background-color: #fef2f2 !important;
+            border-color: #fca5a5 !important;
+            color: #b91c1c !important;
+        }
+
+        [contenteditable="true"]:hover {
+            outline: 1px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        [contenteditable="true"]:focus {
+            outline: 2px solid #fde047;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
         }
     </style>
 </head>
-<body class="bg-slate-100 text-gray-800 font-sans min-h-screen flex flex-col">
+<body class="pb-28">
 
-    <!-- Header institucional -->
-    <header class="bg-indigo-900 text-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-2">
-            <div>
-                <h1 class="text-lg font-black tracking-wide uppercase">Unidad Educativa Clemente Vallejo Larrea</h1>
-                <p class="text-xs text-indigo-200">Portal de Gestión Docente e Insumos</p>
+    <!-- PANTALLA DE INICIO DE SESIÓN MEJORADA -->
+    <div id="pantalla-login" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop');">
+        <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/90 via-blue-900/85 to-indigo-900/90 backdrop-blur-sm"></div>
+        
+        <div class="relative bg-white/95 backdrop-blur-md rounded-[2.5rem] shadow-[0_0_50px_rgba(30,58,138,0.4)] p-8 max-w-sm w-full text-center space-y-6 border-2 border-blue-300/60 mt-10 overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-blue-700 via-indigo-600 to-amber-400"></div>
+
+            <div class="w-28 h-28 mx-auto bg-gradient-to-br from-blue-50 via-white to-indigo-100 rounded-full shadow-xl flex items-center justify-center border-4 border-blue-600 relative -mt-14 overflow-hidden p-2 ring-4 ring-blue-200/50">
+                <img src="logo.png" alt="Logo Institución" class="max-h-full max-w-full object-contain drop-shadow-sm">
             </div>
-            <div class="text-xs bg-indigo-800 px-3 py-1.5 rounded-lg border border-indigo-700 font-medium">
-                <i class="fa-solid fa-user-tie mr-1 text-indigo-300"></i> Prof. Iván Loma
+
+            <div class="space-y-1.5 pt-1">
+                <span class="text-[10px] font-extrabold tracking-widest text-blue-700 uppercase bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200 shadow-sm inline-block">
+                    <i class="fa-solid fa-id-card text-blue-600 mr-1"></i> Portal Docente
+                </span>
+                
+                <h1 class="text-2xl font-black text-gray-900 mt-3 leading-tight">
+                    Unidad Educativa <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 text-xl font-extrabold">Clemente Vallejo Larrea</span>
+                </h1>
+                
+                <p class="text-xs text-gray-500 mt-2 leading-relaxed px-2 font-medium">
+                    Sistema oficial de gestión académica y registro de calificaciones institucionales.
+                </p>
             </div>
-        </div>
-    </header>
 
-    <!-- Contenedor principal -->
-    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
-
-        <!-- Panel de Control y Filtros -->
-        <section class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Curso / Paralelo</label>
-                    <select id="selectCurso" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">Seleccione curso...</option>
-                        <option value="3ro_basica">3ro de Básica</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Insumo / Actividad</label>
-                    <select id="selectInsumo" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">Seleccione insumo...</option>
-                        <option value="insumo_1">Insumo 1</option>
-                    </select>
-                </div>
-                <div class="sm:col-span-2 flex items-end gap-2">
-                    <button type="button" onclick="cargarEstudiantesYNotas()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-rotate"></i> Cargar Datos
-                    </button>
-                    <button type="button" onclick="guardarCambiosFirebase()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> Guardar
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Lista Dinámica de Estudiantes -->
-        <section class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-                <h2 class="text-xs font-black text-gray-700 uppercase tracking-wider">Nómina de Estudiantes y Calificaciones</h2>
-                <span id="contadorAsistencia" class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">Asistencia: 0 / 0</span>
+            <div class="pt-1">
+                <button onclick="iniciarSesionConGoogle()" class="w-full bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-100/50 text-indigo-950 font-bold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-3 text-sm transition-all duration-300 active:scale-95 group">
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google Logo" class="w-6 h-6 transition-transform group-hover:scale-110"> 
+                    Ingresar con Gmail
+                </button>
             </div>
             
-            <div id="contenedorEstudiantes" class="divide-y divide-gray-100">
-                <!-- Los estudiantes se inyectarán dinámicamente aquí -->
-                <div class="p-8 text-center text-gray-400 text-sm">
-                    Seleccione un curso y un insumo, luego haga clic en "Cargar Datos".
+            <div class="text-[10px] text-gray-400 font-medium pt-1 border-t border-gray-100">
+                <i class="fa-solid fa-shield-halved text-blue-600 mr-1"></i> Acceso exclusivo para personal docente.
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div id="app-contenido" class="hidden">
+        <header class="bg-indigo-700 text-white p-4 shadow-lg sticky top-0 z-50">
+            <div class="max-w-md mx-auto flex justify-between items-center">
+                <div>
+                    <h1 id="tituloInstitucion" contenteditable="true" class="text-lg font-bold tracking-wide outline-none">
+                        UE Clemente Vallejo Larrea
+                    </h1>
+                    <div class="flex items-center gap-1.5 text-xs text-indigo-200 mt-0.5">
+                        <i class="fa-solid fa-graduation-cap text-yellow-300 text-sm"></i>
+                        <span id="labelMateriaHeader" class="font-semibold text-white">
+                            Asignatura
+                        </span>
+                    </div>
+                </div>
+                <button onclick="descargarExcel()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1 active:scale-95 transition">
+                    <i class="fa-solid fa-file-excel text-sm"></i> Exportar Excel
+                </button>
+            </div>
+        </header>
+
+        <main class="max-w-md mx-auto p-4 space-y-4">
+
+            <!-- Barra de Información del Usuario -->
+            <div class="bg-blue-50/70 border border-blue-200 p-3.5 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span id="usuario-nombre" class="text-xs font-bold text-indigo-900 truncate"></span>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <span id="sync-status" class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">☁️ Sincronizado</span>
+                    <button onclick="cerrarSesionGoogle()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">Salir</button>
                 </div>
             </div>
-        </section>
 
-    </main>
+            <!-- Carga rápida de Excel -->
+            <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+                <div class="text-xs">
+                    <span class="font-bold text-indigo-900 block">📁 Cargar Nómina desde Excel</span>
+                    <span class="text-indigo-700">Sube un Excel para actualizar alumnos</span>
+                </div>
+                <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl cursor-pointer shadow active:scale-95 transition flex-shrink-0">
+                    <i class="fa-solid fa-upload mr-1"></i> Subir
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="cargarArchivoExcel(event)">
+                </label>
+            </div>
 
-    <!-- Scripts de Lógica -->
+            <!-- Gestión de Asignaturas -->
+            <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-indigo-900 uppercase">Gestión de Asignaturas</label>
+                    <div class="flex gap-1">
+                        <button type="button" onclick="crearNuevaAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition">
+                            <i class="fa-solid fa-plus"></i> Asignatura
+                        </button>
+                        <button type="button" onclick="eliminarAsignaturaActual()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2 py-1 rounded-lg text-[11px] transition shadow-sm" title="Eliminar asignatura actual">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <select id="selectAsignatura" onchange="alCambiarAsignatura()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                    </select>
+                </div>
+            </div>
+
+            <!-- Selector y Gestión de Paralelos -->
+            <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-indigo-900 uppercase">Paralelos de esta Asignatura</label>
+                    <div class="flex gap-1">
+                        <button type="button" onclick="crearNuevoParaleloAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition">
+                            <i class="fa-solid fa-plus"></i> Paralelo
+                        </button>
+                        <button type="button" onclick="eliminarParaleloActualAsignatura()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2 py-1 rounded-lg text-[11px] transition shadow-sm" title="Quitar este paralelo de esta asignatura">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <select id="selectParalelo" onchange="alCambiarSeleccion()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                        </select>
+                    </div>
+                    <div>
+                        <select id="selectTrimestre" onchange="alCambiarSeleccion()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                            <option value="1er Trimestre">1er Trimestre</option>
+                            <option value="2do Trimestre">2do Trimestre</option>
+                            <option value="3er Trimestre">3er Trimestre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-indigo-900 uppercase mb-1">📅 Fecha de Evaluación / Clase</label>
+                    <input type="date" id="inputFecha" onchange="guardarFechaCambiada()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                </div>
+            </div>
+
+            <!-- Gestión de Insumos -->
+            <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
+                <label class="block text-xs font-bold text-indigo-900 uppercase">Gestión de Insumos</label>
+                
+                <div class="flex gap-2">
+                    <select id="selectInsumos" onchange="alCambiarInsumoSelect()" class="w-full bg-white border border-indigo-200 text-indigo-950 font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                    </select>
+                    <button type="button" onclick="agregarNuevoInsumo()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0">
+                        <i class="fa-solid fa-plus"></i> Insumo
+                    </button>
+                    <button type="button" onclick="eliminarInsumoActual()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Estudiantes -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-100 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Nómina</span>
+                        <button type="button" onclick="agregarEstudianteManual()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded-lg text-[11px] shadow flex items-center gap-1 active:scale-95 transition">
+                            <i class="fa-solid fa-user-plus"></i> + Alumno
+                        </button>
+                    </div>
+                    <div class="text-right">
+                        <span id="totalAlumnos" class="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full block">0 Alumnos</span>
+                        <span id="resumenAsistenciaContador" class="text-[10px] text-indigo-700 font-bold mt-0.5 block">asi: 0 | falt: 0</span>
+                    </div>
+                </div>
+                
+                <div id="listaEstudiantes" class="divide-y divide-gray-100">
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Botón Flotante para Guardar Datos -->
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t border-gray-200 shadow-lg z-40">
+            <div class="max-w-md mx-auto flex gap-3">
+                <button onclick="guardarNotasMemoria()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md flex justify-center items-center gap-2 text-base active:scale-98 transition">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar / Actualizar Datos
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Base simulada de datos locales o estado en memoria
-        let datosDelInsumo = {
-            notas: {},
-            asistencia: {},
-            observaciones: {}
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqGIqKwcC2FNXyh9zSF4Jcv4vZT-WTYw4",
+            authDomain: "institucion-cvl.firebaseapp.com",
+            projectId: "institucion-cvl",
+            storageBucket: "institucion-cvl.firebasestorage.app",
+            messagingSenderId: "678890012185",
+            appId: "1:678890012185:web:b342463b613353f253f488"
         };
 
-        // Lista de prueba para el ejemplo
-        let listaEstudiantesEjemplo = [
-            "ALCIVAR PEREZ JUAN CARLOS",
-            "BENITEZ GOMEZ MARIA JOSE",
-            "CANDO VACA LUIS FERNANDO"
-        ];
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let usuarioActual = null;
+
+        auth.onAuthStateChanged((user) => {
+            const pantallaLogin = document.getElementById("pantalla-login");
+            const appContenido = document.getElementById("app-contenido");
+            const usuarioNombre = document.getElementById("usuario-nombre");
+
+            if (user) {
+                usuarioActual = user;
+                pantallaLogin.classList.add("hidden");
+                appContenido.classList.remove("hidden");
+                usuarioNombre.innerText = `👤 ${user.displayName || user.email}`;
+                
+                cargarDeLaNube();
+            } else {
+                usuarioActual = null;
+                pantallaLogin.classList.remove("hidden");
+                appContenido.classList.add("hidden");
+            }
+        });
+
+        function iniciarSesionConGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch((error) => {
+                alert("Error al conectar con Google: " + error.message);
+            });
+        }
+
+        function cerrarSesionGoogle() {
+            auth.signOut().then(() => {
+                alert("Sesión cerrada correctamente.");
+            });
+        }
+
+        function cargarDeLaNube() {
+            if (!usuarioActual) return;
+
+            db.collection("notas_profesor").doc(usuarioActual.uid).get().then((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.listaAsignaturas) {
+                        listaAsignaturas = data.listaAsignaturas;
+                        localStorage.setItem('listaAsignaturas', JSON.stringify(listaAsignaturas));
+                    }
+                    if (data.asignaturasParalelos) {
+                        asignaturasParalelos = data.asignaturasParalelos;
+                        localStorage.setItem('asignaturasParalelos', JSON.stringify(asignaturasParalelos));
+                    }
+                    if (data.estudiantesData) {
+                        estudiantesData = data.estudiantesData;
+                        localStorage.setItem('estudiantesData', JSON.stringify(estudiantesData));
+                    }
+                    if (data.listaInsumosPersonalizados) {
+                        listaInsumosPersonalizados = data.listaInsumosPersonalizados;
+                        localStorage.setItem('listaInsumosPersonalizados', JSON.stringify(listaInsumosPersonalizados));
+                    }
+                    if (data.notasGuardadasDB) {
+                        notasGuardadas = data.notasGuardadasDB;
+                        localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
+                    }
+
+                    renderizarSelectAsignaturas();
+                    renderizarSelectParalelos();
+                    renderizarSelectInsumos();
+                    cargarEstudiantesYNotas();
+                }
+            }).catch(err => {
+                console.error("Error al sincronizar con Firebase: ", err);
+            });
+        }
+
+        function obtenerFechaActualFormato() {
+            const hoy = new Date();
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoy.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        const elemInstitucion = document.getElementById('tituloInstitucion');
+        if (localStorage.getItem('tituloInstitucion')) {
+            elemInstitucion.innerText = localStorage.getItem('tituloInstitucion');
+        }
+        elemInstitucion.addEventListener('blur', () => {
+            localStorage.setItem('tituloInstitucion', elemInstitucion.innerText.trim());
+        });
+
+        let listaAsignaturas = JSON.parse(localStorage.getItem('listaAsignaturas')) || ["Educación Física", "Animación a la Lectura"];
+        
+        let asignaturasParalelos = JSON.parse(localStorage.getItem('asignaturasParalelos')) || {
+            "Educación Física": ["8vo B", "10mo A"],
+            "Animación a la Lectura": ["7mo A", "7mo B"]
+        };
+
+        let estudiantesData = JSON.parse(localStorage.getItem('estudiantesData')) || {};
+        let listaInsumosPersonalizados = JSON.parse(localStorage.getItem('listaInsumosPersonalizados')) || {};
+        let notasGuardadas = JSON.parse(localStorage.getItem('notasGuardadasDB')) || {};
+
+        function renderizarSelectAsignaturas(asigSeleccionada = null) {
+            const select = document.getElementById('selectAsignatura');
+            const labelHeader = document.getElementById('labelMateriaHeader');
+            const actual = asigSeleccionada || select.value;
+            select.innerHTML = '';
+
+            if (listaAsignaturas.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.innerText = "--- Sin asignaturas ---";
+                select.appendChild(opt);
+                labelHeader.innerText = "Sin Asignatura";
+                return;
+            }
+
+            listaAsignaturas.forEach(asig => {
+                const opt = document.createElement('option');
+                opt.value = asig;
+                opt.innerText = asig;
+                select.appendChild(opt);
+            });
+
+            if (actual && listaAsignaturas.includes(actual)) {
+                select.value = actual;
+            } else if (listaAsignaturas.length > 0) {
+                select.value = listaAsignaturas[0];
+            }
+
+            labelHeader.innerText = select.value;
+            renderizarSelectParalelos();
+        }
+
+        function crearNuevaAsignatura() {
+            const nombreAsig = prompt("Escribe el nombre de la nueva asignatura (Ej: Computación, Inglés):");
+            if (nombreAsig && nombreAsig.trim() !== "") {
+                const limpio = nombreAsig.trim();
+                if (!listaAsignaturas.includes(limpio)) {
+                    listaAsignaturas.push(limpio);
+                    localStorage.setItem('listaAsignaturas', JSON.stringify(listaAsignaturas));
+                }
+                if (!asignaturasParalelos[limpio]) {
+                    asignaturasParalelos[limpio] = [];
+                    localStorage.setItem('asignaturasParalelos', JSON.stringify(asignaturasParalelos));
+                }
+                renderizarSelectAsignaturas(limpio);
+                renderizarSelectInsumos();
+                cargarEstudiantesYNotas();
+            }
+        }
+
+        function eliminarAsignaturaActual() {
+            const asig = document.getElementById('selectAsignatura').value;
+            if (!asig) return;
+
+            if (confirm(`¿Estás seguro de eliminar la asignatura "${asig}"?`)) {
+                listaAsignaturas = listaAsignaturas.filter(a => a !== asig);
+                delete asignaturasParalelos[asig];
+                localStorage.setItem('listaAsignaturas', JSON.stringify(listaAsignaturas));
+                localStorage.setItem('asignaturasParalelos', JSON.stringify(asignaturasParalelos));
+                renderizarSelectAsignaturas();
+                renderizarSelectInsumos();
+                cargarEstudiantesYNotas();
+            }
+        }
+
+        function alCambiarAsignatura() {
+            const select = document.getElementById('selectAsignatura');
+            document.getElementById('labelMateriaHeader').innerText = select.value;
+            renderizarSelectParalelos();
+            renderizarSelectInsumos();
+            cargarEstudiantesYNotas();
+        }
+
+        function renderizarSelectParalelos(paraleloSeleccionado = null) {
+            const selectAsig = document.getElementById('selectAsignatura').value;
+            const selectParalelo = document.getElementById('selectParalelo');
+            const actual = paraleloSeleccionado || selectParalelo.value;
+            selectParalelo.innerHTML = '';
+
+            if (!selectAsig || !asignaturasParalelos[selectAsig] || asignaturasParalelos[selectAsig].length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.innerText = "--- Sin paralelos en esta materia ---";
+                selectParalelo.appendChild(opt);
+                renderizarSelectInsumos();
+                cargarEstudiantesYNotas();
+                return;
+            }
+
+            const paralelosDeMateria = asignaturasParalelos[selectAsig];
+            paralelosDeMateria.forEach(par => {
+                const opt = document.createElement('option');
+                opt.value = par;
+                opt.innerText = par;
+                selectParalelo.appendChild(opt);
+            });
+
+            if (actual && paralelosDeMateria.includes(actual)) {
+                selectParalelo.value = actual;
+            } else {
+                selectParalelo.value = paralelosDeMateria[0];
+            }
+
+            renderizarSelectInsumos();
+            cargarEstudiantesYNotas();
+        }
+
+        function crearNuevoParaleloAsignatura() {
+            const selectAsig = document.getElementById('selectAsignatura').value;
+            if (!selectAsig) {
+                alert("⚠️ Selecciona una asignatura primero.");
+                return;
+            }
+
+            const nombreParalelo = prompt(`Escribe el paralelo que recibe "${selectAsig}" (Ej: 8vo B, 7mo A):`);
+            if (nombreParalelo && nombreParalelo.trim() !== "") {
+                const limpio = nombreParalelo.trim();
+                if (!asignaturasParalelos[selectAsig]) {
+                    asignaturasParalelos[selectAsig] = [];
+                }
+                if (!asignaturasParalelos[selectAsig].includes(limpio)) {
+                    asignaturasParalelos[selectAsig].push(limpio);
+                    localStorage.setItem('asignaturasParalelos', JSON.stringify(asignaturasParalelos));
+                }
+                renderizarSelectParalelos(limpio);
+            }
+        }
+
+        function eliminarParaleloActualAsignatura() {
+            const selectAsig = document.getElementById('selectAsignatura').value;
+            const selectParalelo = document.getElementById('selectParalelo').value;
+            if (!selectAsig || !selectParalelo) return;
+
+            if (confirm(`¿Deseas quitar el paralelo "${selectParalelo}" de la asignatura "${selectAsig}"?`)) {
+                asignaturasParalelos[selectAsig] = asignaturasParalelos[selectAsig].filter(p => p !== selectParalelo);
+                localStorage.setItem('asignaturasParalelos', JSON.stringify(asignaturasParalelos));
+                renderizarSelectParalelos();
+            }
+        }
+
+        function obtenerInsumosParaleloActual() {
+            const paralelo = document.getElementById('selectParalelo').value;
+            const asignatura = document.getElementById('selectAsignatura').value;
+            if (!paralelo || !asignatura) return [];
+            
+            const claveKey = `${asignatura}_${paralelo}`;
+            if (!listaInsumosPersonalizados[claveKey]) {
+                listaInsumosPersonalizados[claveKey] = [];
+            }
+            return listaInsumosPersonalizados[claveKey];
+        }
+
+        function validarNotaInput(input) {
+            let val = parseFloat(input.value);
+            if (val > 10) input.value = 10;
+            if (val < 0) input.value = 0;
+
+            if (input.value !== "" && !isNaN(val) && val < 7) {
+                input.classList.add('nota-baja');
+            } else {
+                input.classList.remove('nota-baja');
+            }
+        }
+
+        function alternarVisto(checkbox, estudiante) {
+            const idLimpio = estudiante.replace(/\s+/g, '_');
+            const iconoVisto = document.getElementById(`visto_${idLimpio}`);
+            const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
+
+            if (checkbox.checked) {
+                if (iconoVisto) iconoVisto.classList.remove('hidden');
+                if (checkAtraso) checkAtraso.checked = false;
+            } else {
+                if (iconoVisto) iconoVisto.classList.add('hidden');
+            }
+            actualizarContadorAsistenciaPantalla();
+        }
+
+        function alternarAtraso(checkbox, estudiante) {
+            const idLimpio = estudiante.replace(/\s+/g, '_');
+            const checkAsistencia = document.getElementById(`asis_${idLimpio}`);
+            const iconoVisto = document.getElementById(`visto_${idLimpio}`);
+
+            if (checkbox.checked) {
+                if (checkAsistencia) checkAsistencia.checked = false;
+                if (iconoVisto) iconoVisto.classList.add('hidden');
+            }
+            actualizarContadorAsistenciaPantalla();
+        }
+
+        function actualizarContadorAsistenciaPantalla() {
+            const inputsAsis = document.querySelectorAll('.asistencia-input');
+            const inputsAtraso = document.querySelectorAll('.atraso-input');
+            let totalAsis = 0;
+            let totalFalt = 0;
+
+            inputsAsis.forEach((check, idx) => {
+                const atrasoCheck = inputsAtraso[idx];
+                if (check.checked) {
+                    totalAsis++;
+                } else if (!atrasoCheck || !atrasoCheck.checked) {
+                    totalFalt++;
+                }
+            });
+
+            const lblResumen = document.getElementById('resumenAsistenciaContador');
+            if (lblResumen) {
+                lblResumen.innerText = `asi: ${totalAsis} | falt: ${totalFalt}`;
+            }
+        }
+
+        function ordenarNomina(lista) {
+            return lista.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+        }
+
+        function editarNombreEstudiante(nombreAntiguo) {
+            const paralelo = document.getElementById('selectParalelo').value;
+            const nuevoNombre = prompt(`Editar nombre del estudiante:`, nombreAntiguo);
+            if (nuevoNombre && nuevoNombre.trim() !== "") {
+                const limpio = nuevoNombre.trim().toUpperCase();
+                if (limpio === nombreAntiguo) return;
+
+                if (estudiantesData[paralelo].includes(limpio)) {
+                    alert("⚠️ Ya existe un estudiante con ese nombre en este paralelo.");
+                    return;
+                }
+
+                const index = estudiantesData[paralelo].indexOf(nombreAntiguo);
+                if (index !== -1) {
+                    estudiantesData[paralelo][index] = limpio;
+                    estudiantesData[paralelo] = ordenarNomina(estudiantesData[paralelo]);
+                    localStorage.setItem('estudiantesData', JSON.stringify(estudiantesData));
+                    cargarEstudiantesYNotas();
+                }
+            }
+        }
+
+        function agregarEstudianteManual() {
+            const paralelo = document.getElementById('selectParalelo').value;
+            if (!paralelo) {
+                alert("⚠️ Selecciona o crea un paralelo primero.");
+                return;
+            }
+
+            const nombreAlumno = prompt(`Escribe los APELLIDOS Y NOMBRES del nuevo estudiante para ${paralelo}:`);
+            if (nombreAlumno && nombreAlumno.trim() !== "") {
+                const limpio = nombreAlumno.trim().toUpperCase();
+                if (!estudiantesData[paralelo]) {
+                    estudiantesData[paralelo] = [];
+                }
+                if (!estudiantesData[paralelo].includes(limpio)) {
+                    estudiantesData[paralelo].push(limpio);
+                    estudiantesData[paralelo] = ordenarNomina(estudiantesData[paralelo]);
+                    localStorage.setItem('estudiantesData', JSON.stringify(estudiantesData));
+                    cargarEstudiantesYNotas();
+                } else {
+                    alert("⚠️ El estudiante ya existe en este paralelo.");
+                }
+            }
+        }
+
+        function eliminarEstudiante(nombre) {
+            const paralelo = document.getElementById('selectParalelo').value;
+            if (confirm(`¿Deseas quitar a "${nombre}" de ${paralelo}?`)) {
+                estudiantesData[paralelo] = estudiantesData[paralelo].filter(est => est !== nombre);
+                localStorage.setItem('estudiantesData', JSON.stringify(estudiantesData));
+                cargarEstudiantesYNotas();
+            }
+        }
+
+        function renderizarSelectInsumos(insumoSeleccionado = null) {
+            const select = document.getElementById('selectInsumos');
+            const insumosParalelo = obtenerInsumosParaleloActual();
+            const actual = insumoSeleccionado || select.value;
+            select.innerHTML = '';
+            
+            if (insumosParalelo.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.innerText = "--- Sin insumos (Crea uno con +) ---";
+                select.appendChild(opt);
+                cargarEstudiantesYNotas();
+                return;
+            }
+
+            insumosParalelo.forEach(ins => {
+                const opt = document.createElement('option');
+                opt.value = ins;
+                opt.innerText = ins;
+                select.appendChild(opt);
+            });
+
+            if (actual && insumosParalelo.includes(actual)) {
+                select.value = actual;
+            } else if (insumosParalelo.length > 0) {
+                select.value = insumosParalelo[0];
+            }
+            
+            cargarEstudiantesYNotas();
+        }
+
+        function agregarNuevoInsumo() {
+            const paralelo = document.getElementById('selectParalelo').value;
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            if (!paralelo || !asignatura) {
+                alert("⚠️ Selecciona una asignatura y un paralelo primero.");
+                return;
+            }
+
+            const nuevoInsumo = prompt(`Escribe el nombre del nuevo insumo o actividad para ${asignatura} - ${paralelo}:`);
+            if (nuevoInsumo && nuevoInsumo.trim() !== "") {
+                const limpio = nuevoInsumo.trim();
+                const claveKey = `${asignatura}_${paralelo}`;
+                if (!listaInsumosPersonalizados[claveKey]) {
+                    listaInsumosPersonalizados[claveKey] = [];
+                }
+                if (!listaInsumosPersonalizados[claveKey].includes(limpio)) {
+                    listaInsumosPersonalizados[claveKey].push(limpio);
+                    localStorage.setItem('listaInsumosPersonalizados', JSON.stringify(listaInsumosPersonalizados));
+                }
+
+                // Inicializamos su registro con la fecha actual del día de creación por defecto
+                const claveDB = `${asignatura}_${paralelo}_${trimestre}_${limpio}`;
+                if (!notasGuardadas[claveDB]) {
+                    notasGuardadas[claveDB] = { fecha: obtenerFechaActualFormato(), notas: {}, asistencia: {}, observaciones: {} };
+                    localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
+                }
+
+                renderizarSelectInsumos(limpio);
+            }
+        }
+
+        function eliminarInsumoActual() {
+            const paralelo = document.getElementById('selectParalelo').value;
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const select = document.getElementById('selectInsumos');
+            const insumoBorrar = select.value;
+
+            if (!insumoBorrar) {
+                alert("⚠️ No hay ningún insumo seleccionado para eliminar.");
+                return;
+            }
+
+            if (confirm(`¿Estás seguro de eliminar el insumo "${insumoBorrar}"?`)) {
+                const claveKey = `${asignatura}_${paralelo}`;
+                listaInsumosPersonalizados[claveKey] = listaInsumosPersonalizados[claveKey].filter(i => i !== insumoBorrar);
+                localStorage.setItem('listaInsumosPersonalizados', JSON.stringify(listaInsumosPersonalizados));
+                renderizarSelectInsumos();
+            }
+        }
+
+        function alCambiarInsumoSelect() {
+            cargarEstudiantesYNotas();
+        }
+
+        function alCambiarSeleccion() {
+            renderizarSelectInsumos();
+        }
+
+        function guardarFechaCambiada() {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const insumo = document.getElementById('selectInsumos').value;
+            const nuevaFecha = document.getElementById('inputFecha').value;
+
+            if (!paralelo || !insumo) return;
+
+            const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
+            if (!notasGuardadas[claveDB]) {
+                notasGuardadas[claveDB] = { fecha: nuevaFecha, notas: {}, asistencia: {}, observaciones: {} };
+            } else {
+                notasGuardadas[claveDB].fecha = nuevaFecha;
+            }
+
+            localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
+        }
 
         function cargarEstudiantesYNotas() {
-            const contenedor = document.getElementById('contenedorEstudiantes');
-            contenedor.innerHTML = "";
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const insumo = document.getElementById('selectInsumos').value;
 
-            listaEstudiantesEjemplo.forEach((nombre, idx) => {
+            const contenedor = document.getElementById('listaEstudiantes');
+            let lista = estudiantesData[paralelo] || [];
+            lista = ordenarNomina(lista);
+            
+            document.getElementById('totalAlumnos').innerText = `${lista.length} Alumnos`;
+            contenedor.innerHTML = '';
+
+            if (!paralelo) {
+                contenedor.innerHTML = `<div class="p-6 text-center text-gray-400 text-sm">Selecciona un paralelo para esta asignatura.</div>`;
+                document.getElementById('resumenAsistenciaContador').innerText = "asi: 0 | falt: 0";
+                return;
+            }
+
+            if (!insumo) {
+                contenedor.innerHTML = `
+                    <div class="p-6 text-center text-gray-400 text-sm">
+                        No hay insumos creados para ${asignatura} (${paralelo}).<br>Presiona el botón <b>+ Insumo</b> arriba.
+                    </div>
+                `;
+                document.getElementById('resumenAsistenciaContador').innerText = "asi: 0 | falt: 0";
+                document.getElementById('inputFecha').value = obtenerFechaActualFormato();
+                return;
+            }
+
+            const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
+            const datosDelInsumo = notasGuardadas[claveDB] || {};
+
+            // Restaura la fecha específica guardada de este insumo o asigna la de hoy si es nuevo
+            if (datosDelInsumo.fecha) {
+                document.getElementById('inputFecha').value = datosDelInsumo.fecha;
+            } else {
+                const fechaHoy = obtenerFechaActualFormato();
+                document.getElementById('inputFecha').value = fechaHoy;
+                notasGuardadas[claveDB] = { fecha: fechaHoy, notas: {}, asistencia: {}, observaciones: {} };
+                localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
+            }
+
+            if (lista.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="p-6 text-center text-gray-400 text-sm">
+                        No hay alumnos registrados en ${paralelo}.<br>
+                        Usa el botón <b>+ Alumno</b> o <b>Subir Excel</b>.
+                    </div>
+                `;
+                document.getElementById('resumenAsistenciaContador').innerText = "asi: 0 | falt: 0";
+                return;
+            }
+
+            lista.forEach((nombre, idx) => {
                 const num = idx + 1;
                 const idLimpio = nombre.replace(/\s+/g, '_');
                 const notaExistente = (datosDelInsumo.notas && datosDelInsumo.notas[nombre] !== undefined) ? datosDelInsumo.notas[nombre] : "";
@@ -112,11 +777,10 @@
 
                 const esAsis = asisExistente === "A" || asisExistente === true;
                 const esAtraso = asisExistente === "ATR";
-                const esFalta = asisExistente === "F";
                 const esNotaBaja = notaExistente !== "" && parseFloat(notaExistente) < 7;
 
                 contenedor.innerHTML += `
-                    <div id="fila_est_${idLimpio}" class="p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none ${esFalta ? 'falta-estilo' : ''}">
+                    <div class="p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none">
                         <div class="flex items-center justify-between gap-3">
                             <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" onclick="editarNombreEstudiante('${nombre}')" title="Haz clic para editar el nombre">
                                 <span class="w-6 h-6 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xs flex-shrink-0">${num}</span>
@@ -127,7 +791,7 @@
                                 <label class="flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-xl border border-emerald-200 transition flex-shrink-0" title="Marcar Asistencia">
                                     <input type="checkbox" id="asis_${idLimpio}" data-estudiante-asis="${nombre}" class="asistencia-input hidden" ${esAsis ? 'checked' : ''} onchange="alternarVisto(this, '${nombre}')">
                                     <i id="visto_${idLimpio}" class="fa-solid fa-circle-check text-emerald-600 text-base ${esAsis ? '' : 'hidden'}"></i>
-                                    <span class="text-[10px] font-bold text-emerald-800">${esAsis ? 'Asis' : '❌ FALT'}</span>
+                                    <span class="text-[10px] font-bold text-emerald-800">Asis</span>
                                 </label>
 
                                 <label class="flex items-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-200 transition flex-shrink-0" title="Marcar Atraso">
@@ -149,75 +813,392 @@
                     </div>
                 `;
             });
+
             actualizarContadorAsistenciaPantalla();
         }
 
-        function alternarVisto(checkbox, estudiante) {
-            const idLimpio = estudiante.replace(/\s+/g, '_');
-            const iconoVisto = document.getElementById(`visto_${idLimpio}`);
-            const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
-            const contenedorFila = document.getElementById(`fila_est_${idLimpio}`);
-            const textoLabel = checkbox.parentElement.querySelector('span');
+        function guardarNotasMemoria() {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const insumo = document.getElementById('selectInsumos').value;
+            const fecha = document.getElementById('inputFecha').value;
 
-            if (checkbox.checked) {
-                if (iconoVisto) iconoVisto.classList.remove('hidden');
-                if (checkAtraso) checkAtraso.checked = false;
-                if (contenedorFila) contenedorFila.classList.remove('falta-estilo');
-                if (textoLabel) textoLabel.innerText = 'Asis';
-            } else {
-                if (iconoVisto) iconoVisto.classList.add('hidden');
-                if (contenedorFila) contenedorFila.classList.add('falta-estilo');
-                if (textoLabel) textoLabel.innerText = '❌ FALT';
+            if (!paralelo || !insumo) {
+                alert("⚠️ Selecciona un paralelo y un insumo primero.");
+                return;
             }
-            actualizarContadorAsistenciaPantalla();
-        }
 
-        function alternarAtraso(checkbox, estudiante) {
-            const idLimpio = estudiante.replace(/\s+/g, '_');
-            const checkAsistencia = document.getElementById(`asis_${idLimpio}`);
-            const iconoVisto = document.getElementById(`visto_${idLimpio}`);
-            const contenedorFila = document.getElementById(`fila_est_${idLimpio}`);
-            const textoAsisLabel = checkAsistencia ? checkAsistencia.parentElement.querySelector('span') : null;
-
-            if (checkbox.checked) {
-                if (checkAsistencia) checkAsistencia.checked = false;
-                if (iconoVisto) iconoVisto.classList.add('hidden');
-                if (contenedorFila) contenedorFila.classList.remove('falta-estilo');
-                if (textoAsisLabel) textoAsisLabel.innerText = '❌ FALT';
+            const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
+            if (!notasGuardadas[claveDB]) {
+                notasGuardadas[claveDB] = { fecha: fecha, notas: {}, asistencia: {}, observaciones: {} };
             }
-            actualizarContadorAsistenciaPantalla();
-        }
 
-        function validarNotaInput(input) {
-            let val = parseFloat(input.value);
-            if (val < 7) {
-                input.classList.add('nota-baja');
-            } else {
-                input.classList.remove('nota-baja');
+            notasGuardadas[claveDB].fecha = fecha;
+            if (!notasGuardadas[claveDB].asistencia) notasGuardadas[claveDB].asistencia = {};
+            if (!notasGuardadas[claveDB].observaciones) notasGuardadas[claveDB].observaciones = {};
+
+            const inputsNotas = document.querySelectorAll('.nota-input');
+            inputsNotas.forEach(input => {
+                const estudiante = input.getAttribute('data-estudiante');
+                let notaVal = input.value;
+
+                if (notaVal !== "") {
+                    let numNota = parseFloat(notaVal);
+                    if (numNota > 10) numNota = 10;
+                    if (numNota < 0) numNota = 0;
+
+                    notasGuardadas[claveDB].notas[estudiante] = numNota;
+                } else {
+                    delete notasGuardadas[claveDB].notas[estudiante];
+                }
+            });
+
+            const inputsAsis = document.querySelectorAll('.asistencia-input');
+            inputsAsis.forEach(check => {
+                const estudiante = check.getAttribute('data-estudiante-asis');
+                const idLimpio = estudiante.replace(/\s+/g, '_');
+                const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
+
+                if (checkAtraso && checkAtraso.checked) {
+                    notasGuardadas[claveDB].asistencia[estudiante] = "ATR";
+                } else if (check.checked) {
+                    notasGuardadas[claveDB].asistencia[estudiante] = "A";
+                } else {
+                    notasGuardadas[claveDB].asistencia[estudiante] = "F";
+                }
+            });
+
+            const inputsObs = document.querySelectorAll('.obs-input');
+            inputsObs.forEach(input => {
+                const estudiante = input.getAttribute('data-estudiante-obs');
+                const obsVal = input.value.trim();
+                if (obsVal !== "") {
+                    notasGuardadas[claveDB].observaciones[estudiante] = obsVal;
+                } else {
+                    delete notasGuardadas[claveDB].observaciones[estudiante];
+                }
+            });
+
+            localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
+
+            if (usuarioActual) {
+                db.collection("notas_profesor").doc(usuarioActual.uid).set({
+                    listaAsignaturas: listaAsignaturas,
+                    asignaturasParalelos: asignaturasParalelos,
+                    estudiantesData: estudiantesData,
+                    listaInsumosPersonalizados: listaInsumosPersonalizados,
+                    notasGuardadasDB: notasGuardadas,
+                    ultimaActualizacion: new Date().toLocaleString()
+                }, { merge: true })
+                .then(() => {
+                    alert(`✅ ¡Datos guardados y respaldados en la nube para ${asignatura} - ${paralelo}!`);
+                })
+                .catch((error) => {
+                    alert(`✅ Datos guardados localmente. (Error al sincronizar: ${error.message})`);
+                });
             }
         }
 
-        function actualizarContadorAsistenciaPantalla() {
-            const total = listaEstudiantesEjemplo.length;
-            const asistencias = document.querySelectorAll('.asistencia-input:checked').length;
-            const labelContador = document.getElementById('contadorAsistencia');
-            if(labelContador) {
-                labelContador.innerText = `Asistencia: ${asistencias} / ${total}`;
+        function cargarArchivoExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+
+                let nombres = [];
+                json.forEach(row => {
+                    row.forEach(cell => {
+                        if (typeof cell === 'string' && cell.trim().length > 8 && cell === cell.toUpperCase() && !cell.includes("UNIDAD") && !cell.includes("REPORTE") && !cell.includes("DOCENTE")) {
+                            if (!nombres.includes(cell.trim())) {
+                                nombres.push(cell.trim());
+                            }
+                        }
+                    });
+                });
+
+                if (nombres.length > 0) {
+                    const paraleloActual = document.getElementById('selectParalelo').value;
+                    if (!paraleloActual) {
+                        alert("⚠️ Selecciona un paralelo primero para cargar la nómina.");
+                        return;
+                    }
+                    estudiantesData[paraleloActual] = ordenarNomina(nombres);
+                    localStorage.setItem('estudiantesData', JSON.stringify(estudiantesData));
+                    alert(`✅ Se cargaron ${nombres.length} estudiantes para ${paraleloActual}.`);
+                    cargarEstudiantesYNotas();
+                } else {
+                    alert("⚠️ No se pudieron detectar nombres en el archivo.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function descargarExcel() {
+            const asignaturaSel = document.getElementById('selectAsignatura').value;
+            const paraleloSel = document.getElementById('selectParalelo').value;
+            const trimestreSel = document.getElementById('selectTrimestre').value;
+            const instNombre = document.getElementById('tituloInstitucion').innerText.trim();
+
+            if (!paraleloSel || !asignaturaSel) {
+                alert("⚠️ Selecciona una asignatura y un paralelo.");
+                return;
             }
+
+            let listaEstudiantes = estudiantesData[paraleloSel] || [];
+            listaEstudiantes = ordenarNomina(listaEstudiantes);
+
+            if (listaEstudiantes.length === 0) {
+                alert("⚠️ No hay estudiantes para exportar.");
+                return;
+            }
+
+            const claveKey = `${asignaturaSel}_${paraleloSel}`;
+            const listaInsumos = listaInsumosPersonalizados[claveKey] || [];
+
+            if (listaInsumos.length === 0) {
+                alert("⚠️ No has creado ningún insumo para esta asignatura y paralelo.");
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+
+            const estiloTituloPrincipal = {
+                font: { name: "Arial", sz: 14, bold: true, color: { rgb: "1E1B4B" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const estiloSubTitulo = {
+                font: { name: "Arial", sz: 11, bold: true, color: { rgb: "4338CA" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const estiloEtiqueta = {
+                font: { name: "Arial", sz: 10, bold: true, color: { rgb: "374151" } },
+                alignment: { horizontal: "left", vertical: "center" }
+            };
+
+            const estiloCabeceraTabla = {
+                fill: { fgColor: { rgb: "4F46E5" } },
+                font: { name: "Arial", sz: 10, bold: true, color: { rgb: "FFFFFF" } },
+                alignment: { horizontal: "center", vertical: "center" },
+                border: {
+                    top: { style: "thin", color: { rgb: "312E81" } },
+                    bottom: { style: "thin", color: { rgb: "312E81" } },
+                    left: { style: "thin", color: { rgb: "312E81" } },
+                    right: { style: "thin", color: { rgb: "312E81" } }
+                }
+            };
+
+            const estiloCeldaDatos = {
+                font: { name: "Arial", sz: 10, color: { rgb: "1F2937" } },
+                alignment: { vertical: "center" },
+                border: {
+                    top: { style: "thin", color: { rgb: "E5E7EB" } },
+                    bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+                    left: { style: "thin", color: { rgb: "E5E7EB" } },
+                    right: { style: "thin", color: { rgb: "E5E7EB" } }
+                }
+            };
+
+            const estiloCeldaCentrada = {
+                ...estiloCeldaDatos,
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const estiloNotaBaja = {
+                ...estiloCeldaCentrada,
+                fill: { fgColor: { rgb: "FEE2E2" } },
+                font: { name: "Arial", sz: 10, bold: true, color: { rgb: "B91C1C" } }
+            };
+
+            let sheetNotasData = [];
+            sheetNotasData.push([instNombre]);
+            sheetNotasData.push(["REPORTE OFICIAL DE CALIFICACIONES E INSUMOS"]);
+            sheetNotasData.push(["ASIGNATURA:", asignaturaSel.toUpperCase()]);
+            sheetNotasData.push(["PARALELO:", paraleloSel, "TRIMESTRE:", trimestreSel]);
+            sheetNotasData.push([]);
+
+            let filaFechasNotas = ["", "FECHA:"];
+            let filaInsumosNotas = ["N°", "ESTUDIANTES"];
+
+            listaInsumos.forEach(ins => {
+                const claveDB = `${asignaturaSel}_${paraleloSel}_${trimestreSel}_${ins}`;
+                const fechaRaw = (notasGuardadas[claveDB] && notasGuardadas[claveDB].fecha) ? notasGuardadas[claveDB].fecha : "";
+                filaFechasNotas.push(fechaRaw);
+                filaInsumosNotas.push(ins);
+            });
+
+            filaFechasNotas.push("", "");
+            filaInsumosNotas.push("PROMEDIO", "OBSERVACIÓN");
+
+            sheetNotasData.push(filaFechasNotas);
+            sheetNotasData.push(filaInsumosNotas);
+
+            listaEstudiantes.forEach((estudiante, idx) => {
+                let filaEstudiante = [idx + 1, estudiante];
+                let sumaNotas = 0;
+                let conteoNotas = 0;
+                let observacionesAcumuladas = [];
+
+                listaInsumos.forEach(ins => {
+                    const claveDB = `${asignaturaSel}_${paraleloSel}_${trimestreSel}_${ins}`;
+                    const datosInsumo = notasGuardadas[claveDB] || {};
+                    
+                    const nota = (datosInsumo.notas && datosInsumo.notas[estudiante] !== undefined) ? datosInsumo.notas[estudiante] : "";
+                    const obs = (datosInsumo.observaciones && datosInsumo.observaciones[estudiante] !== undefined) ? datosInsumo.observaciones[estudiante] : "";
+
+                    if (nota !== "") {
+                        sumaNotas += parseFloat(nota);
+                        conteoNotas++;
+                        filaEstudiante.push(parseFloat(nota));
+                    } else {
+                        filaEstudiante.push("");
+                    }
+
+                    if (obs !== "") {
+                        observacionesAcumuladas.push(`${ins}: ${obs}`);
+                    }
+                });
+
+                const promedioVal = conteoNotas > 0 ? (sumaNotas / conteoNotas).toFixed(2) : "";
+                filaEstudiante.push(promedioVal !== "" ? parseFloat(promedioVal) : "");
+                filaEstudiante.push(observacionesAcumuladas.join(" | "));
+
+                sheetNotasData.push(filaEstudiante);
+            });
+
+            const wsNotas = XLSX.utils.aoa_to_sheet(sheetNotasData);
+            const rangeNotas = XLSX.utils.decode_range(wsNotas['!ref']);
+            
+            for (let R = rangeNotas.s.r; R <= rangeNotas.e.r; ++R) {
+                for (let C = rangeNotas.s.c; C <= rangeNotas.e.c; ++C) {
+                    const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (!wsNotas[cellRef]) continue;
+
+                    if (R === 0) wsNotas[cellRef].s = estiloTituloPrincipal;
+                    else if (R === 1) wsNotas[cellRef].s = estiloSubTitulo;
+                    else if (R === 2 || R === 3) wsNotas[cellRef].s = estiloEtiqueta;
+                    else if (R === 5 || R === 6) wsNotas[cellRef].s = estiloCabeceraTabla;
+                    else if (R > 6) {
+                        if (C === 0 || C >= 2 && C < 2 + listaInsumos.length || C === 2 + listaInsumos.length) {
+                            wsNotas[cellRef].s = estiloCeldaCentrada;
+                        } else {
+                            wsNotas[cellRef].s = estiloCeldaDatos;
+                        }
+
+                        if (C >= 2 && C < 2 + listaInsumos.length && typeof wsNotas[cellRef].v === 'number') {
+                            if (wsNotas[cellRef].v < 7.0) {
+                                wsNotas[cellRef].s = estiloNotaBaja;
+                            }
+                        }
+                    }
+                }
+            }
+
+            wsNotas['!cols'] = [
+                { wch: 6 },
+                { wch: 35 },
+                ...listaInsumos.map(() => ({ wch: 14 })),
+                { wch: 12 },
+                { wch: 40 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, wsNotas, "Notas");
+
+            let sheetAsisData = [];
+            sheetAsisData.push([instNombre]);
+            sheetAsisData.push(["CONTROL DETALLADO DE ASISTENCIA Y FALTAS"]);
+            sheetAsisData.push(["ASIGNATURA:", asignaturaSel.toUpperCase()]);
+            sheetAsisData.push(["PARALELO:", paraleloSel, "TRIMESTRE:", trimestreSel]);
+            sheetAsisData.push([]);
+
+            let filaFechasAsis = ["", "FECHA:"];
+            let filaInsumosAsis = ["N°", "ESTUDIANTES"];
+
+            listaInsumos.forEach(ins => {
+                const claveDB = `${asignaturaSel}_${paraleloSel}_${trimestreSel}_${ins}`;
+                const fechaRaw = (notasGuardadas[claveDB] && notasGuardadas[claveDB].fecha) ? notasGuardadas[claveDB].fecha : "Sin Fecha";
+                filaFechasAsis.push(fechaRaw);
+                filaInsumosAsis.push(`${ins}`);
+            });
+
+            filaFechasAsis.push("", "", "");
+            filaInsumosAsis.push("TOTAL ASIST (A)", "TOTAL ATRASOS (ATR)", "TOTAL FALTAS (F)");
+
+            sheetAsisData.push(filaFechasAsis);
+            sheetAsisData.push(filaInsumosAsis);
+
+            listaEstudiantes.forEach((estudiante, idx) => {
+                let filaEst = [idx + 1, estudiante];
+                let contA = 0;
+                let contATR = 0;
+                let contF = 0;
+
+                listaInsumos.forEach(ins => {
+                    const claveDB = `${asignaturaSel}_${paraleloSel}_${trimestreSel}_${ins}`;
+                    const datosInsumo = notasGuardadas[claveDB] || {};
+                    const estado = (datosInsumo.asistencia && datosInsumo.asistencia[estudiante] !== undefined) ? datosInsumo.asistencia[estudiante] : "A";
+
+                    if (estado === "A" || estado === true) {
+                        contA++;
+                        filaEst.push("A");
+                    } else if (estado === "ATR") {
+                        contATR++;
+                        filaEst.push("ATR");
+                    } else {
+                        contF++;
+                        filaEst.push("F");
+                    }
+                });
+
+                filaEst.push(contA, contATR, contF);
+                sheetAsisData.push(filaEst);
+            });
+
+            const wsAsis = XLSX.utils.aoa_to_sheet(sheetAsisData);
+            const rangeAsis = XLSX.utils.decode_range(wsAsis['!ref']);
+            for (let R = rangeAsis.s.r; R <= rangeAsis.e.r; ++R) {
+                for (let C = rangeAsis.s.c; C <= rangeAsis.e.c; ++C) {
+                    const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (!wsAsis[cellRef]) continue;
+
+                    if (R === 0) wsAsis[cellRef].s = estiloTituloPrincipal;
+                    else if (R === 1) wsAsis[cellRef].s = estiloSubTitulo;
+                    else if (R === 2 || R === 3) wsAsis[cellRef].s = estiloEtiqueta;
+                    else if (R === 5 || R === 6) wsAsis[cellRef].s = estiloCabeceraTabla;
+                    else if (R > 6) wsAsis[cellRef].s = estiloCeldaCentrada;
+                }
+            }
+
+            wsAsis['!cols'] = [
+                { wch: 6 },
+                { wch: 35 },
+                ...listaInsumos.map(() => ({ wch: 14 })),
+                { wch: 16 },
+                { wch: 18 },
+                { wch: 16 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, wsAsis, "Control_Asistencia");
+
+            const fAct = new Date();
+            const fStr = `${fAct.getFullYear()}-${String(fAct.getMonth()+1).padStart(2,'0')}-${String(fAct.getDate()).padStart(2,'0')}`;
+            XLSX.writeFile(wb, `Registro_${asignaturaSel}_${paraleloSel}_${fStr}.xlsx`);
         }
 
-        function guardarCambiosFirebase() {
-            alert("Datos preparados para sincronizar con Firebase correctamente.");
-        }
-
-        function editarNombreEstudiante(nombre) {
-            // Lógica opcional para editar nombre
-        }
-
-        function eliminarEstudiante(nombre) {
-            listaEstudiantesEjemplo = listaEstudiantesEjemplo.filter(e => e !== nombre);
+        window.onload = function() {
+            renderizarSelectAsignaturas();
+            renderizarSelectParalelos();
+            renderizarSelectInsumos();
             cargarEstudiantesYNotas();
-        }
+        };
     </script>
 </body>
 </html>
