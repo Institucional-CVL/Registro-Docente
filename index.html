@@ -733,17 +733,6 @@
                 return;
             }
 
-            if (!insumo) {
-                contenedor.innerHTML = `
-                    <div class="p-6 text-center text-gray-400 text-sm">
-                        No hay insumos creados para ${asignatura} (${paralelo}).<br>Presiona el botón <b>+ Insumo</b> arriba.
-                    </div>
-                `;
-                document.getElementById('resumenAsistenciaContador').innerText = "asi: 0 | falt: 0";
-                document.getElementById('inputFecha').value = obtenerFechaActualFormato();
-                return;
-            }
-
             const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
             const datosDelInsumo = notasGuardadas[claveDB] || {};
 
@@ -753,8 +742,20 @@
             } else {
                 const fechaHoy = obtenerFechaActualFormato();
                 document.getElementById('inputFecha').value = fechaHoy;
-                notasGuardadas[claveDB] = { fecha: fechaHoy, notas: {}, asistencia: {}, observaciones: {} };
-                localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
+                if (insumo) {
+                    notasGuardadas[claveDB] = { fecha: fechaHoy, notas: {}, asistencia: {}, observaciones: {} };
+                    localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
+                }
+            }
+
+            if (!insumo) {
+                contenedor.innerHTML = `
+                    <div class="p-6 text-center text-gray-400 text-sm">
+                        No hay insumos creados para ${asignatura} (${paralelo}).<br>Presiona el botón <b>+ Insumo</b> arriba.
+                    </div>
+                `;
+                document.getElementById('resumenAsistenciaContador').innerText = "asi: 0 | falt: 0";
+                return;
             }
 
             if (lista.length === 0) {
