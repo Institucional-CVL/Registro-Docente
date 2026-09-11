@@ -223,6 +223,39 @@
         </div>
     </div>
 
+    <!-- MODAL PARA VER EVIDENCIA FOTOGRÁFICA -->
+    <div id="modalEvidencia" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl relative border-2 border-indigo-100">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1">
+                    <i class="fa-solid fa-image text-indigo-600"></i> Evidencia del Estudiante
+                </h3>
+                <button onclick="cerrarModalEvidencia()" class="text-gray-400 hover:text-rose-600 text-lg font-bold p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="text-center">
+                <p id="modalEstudianteNombre" class="text-xs font-bold text-gray-800 mb-2"></p>
+                <div class="bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 flex items-center justify-center max-h-80">
+                    <img id="modalImagenPreview" src="" alt="Evidencia de trabajo" class="max-h-80 w-auto object-contain">
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="eliminarEvidenciaActual()" class="w-1/2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-trash-can"></i> Eliminar Foto
+                </button>
+                <button onclick="cerrarModalEvidencia()" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input oculto dinámico para capturar la foto de un alumno -->
+    <input type="file" id="fileInputEvidencia" accept="image/*" class="hidden" onchange="procesarFotoEvidencia(event)">
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDqGIqKwcC2FNXyh9zSF4Jcv4vZT-WTYw4",
@@ -238,6 +271,7 @@
         const db = firebase.firestore();
 
         let usuarioActual = null;
+        let alumnoSeleccionadoParaFoto = null;
 
         auth.onAuthStateChanged((user) => {
             const pantallaLogin = document.getElementById("pantalla-login");
@@ -657,10 +691,9 @@
                     localStorage.setItem('listaInsumosPersonalizados', JSON.stringify(listaInsumosPersonalizados));
                 }
 
-                // Inicializamos su registro con la fecha actual del día de creación por defecto
                 const claveDB = `${asignatura}_${paralelo}_${trimestre}_${limpio}`;
                 if (!notasGuardadas[claveDB]) {
-                    notasGuardadas[claveDB] = { fecha: obtenerFechaActualFormato(), notas: {}, asistencia: {}, observaciones: {} };
+                    notasGuardadas[claveDB] = { fecha: obtenerFechaActualFormato(), notas: {}, asistencia: {}, observaciones: {}, evidencias: {} };
                     localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
                 }
 
@@ -706,13 +739,110 @@
 
             const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
             if (!notasGuardadas[claveDB]) {
-                notasGuardadas[claveDB] = { fecha: nuevaFecha, notas: {}, asistencia: {}, observaciones: {} };
+                notasGuardadas[claveDB] = { fecha: nuevaFecha, notas: {}, asistencia: {}, observaciones: {}, evidencias: {} };
             } else {
                 notasGuardadas[claveDB].fecha = nuevaFecha;
             }
 
             localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
         }
+
+        // --- FUNCIONES DE EVIDENCIA FOTOGRÁFICA ---
+        function activarSubidaEvidencia(estudiante) {
+            const insumo = document.getElementById('selectInsumos').value;
+            if (!insumo) {
+                alert("⚠️ Selecciona un insumo primero.");
+                return;
+            }
+            alumnoSeleccionadoParaFoto = estudiante;
+            document.getElementById('fileInputEvidencia').click();
+        }
+
+        function procesarFotoEvidencia(event) {
+            const file = event.target.files[0];
+            if (!file || !alumnoSeleccionadoParaFoto) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // Comprimir imagen a un ancho máximo de 800px para ahorrar espacio
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    const base64Compressed = canvas.toDataURL('image/jpeg', 0.7);
+
+                    const asignatura = document.getElementById('selectAsignatura').value;
+                    const paralelo = document.getElementById('selectParalelo').value;
+                    const trimestre = document.getElementById('selectTrimestre').value;
+                    const insumo = document.getElementById('selectInsumos').value;
+                    const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
+
+                    if (!notasGuardadas[claveDB]) {
+                        notasGuardadas[claveDB] = { fecha: obtenerFechaActualFormato(), notas: {}, asistencia: {}, observaciones: {}, evidencias: {} };
+                    }
+                    if (!notasGuardadas[claveDB].evidencias) {
+                        notasGuardadas[claveDB].evidencias = {};
+                    }
+
+                    notasGuardadas[claveDB].evidencias[alumnoSeleccionadoParaFoto] = base64Compressed;
+                    localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
+
+                    alert(`📸 Evidencia fotográfica guardada con éxito para ${alumnoSeleccionadoParaFoto}.`);
+                    cargarEstudiantesYNotas();
+                    event.target.value = ''; // limpiar input
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function verEvidencia(estudiante) {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const insumo = document.getElementById('selectInsumos').value;
+            const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
+
+            const datosInsumo = notasGuardadas[claveDB] || {};
+            if (datosInsumo.evidencias && datosInsumo.evidencias[estudiante]) {
+                alumnoSeleccionadoParaFoto = estudiante;
+                document.getElementById('modalEstudianteNombre').innerText = estudiante;
+                document.getElementById('modalImagenPreview').src = datosInsumo.evidencias[estudiante];
+                document.getElementById('modalEvidencia').classList.remove('hidden');
+            } else {
+                alert("⚠️ No hay evidencia fotográfica para este estudiante en este insumo.");
+            }
+        }
+
+        function cerrarModalEvidencia() {
+            document.getElementById('modalEvidencia').classList.add('hidden');
+            alumnoSeleccionadoParaFoto = null;
+        }
+
+        function eliminarEvidenciaActual() {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const insumo = document.getElementById('selectInsumos').value;
+            const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
+
+            if (confirm(`¿Estás seguro de eliminar la evidencia de ${alumnoSeleccionadoParaFoto}?`)) {
+                if (notasGuardadas[claveDB] && notasGuardadas[claveDB].evidencias) {
+                    delete notasGuardadas[claveDB].evidencias[alumnoSeleccionadoParaFoto];
+                    localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
+                }
+                cerrarModalEvidencia();
+                cargarEstudiantesYNotas();
+            }
+        }
+        // ----------------------------------------------------
 
         function cargarEstudiantesYNotas() {
             const asignatura = document.getElementById('selectAsignatura').value;
@@ -736,14 +866,13 @@
             const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
             const datosDelInsumo = notasGuardadas[claveDB] || {};
 
-            // Restaura la fecha específica guardada de este insumo o asigna la de hoy si es nuevo
             if (datosDelInsumo.fecha) {
                 document.getElementById('inputFecha').value = datosDelInsumo.fecha;
             } else {
                 const fechaHoy = obtenerFechaActualFormato();
                 document.getElementById('inputFecha').value = fechaHoy;
                 if (insumo) {
-                    notasGuardadas[claveDB] = { fecha: fechaHoy, notas: {}, asistencia: {}, observaciones: {} };
+                    notasGuardadas[claveDB] = { fecha: fechaHoy, notas: {}, asistencia: {}, observaciones: {}, evidencias: {} };
                     localStorage.setItem('notasGuardadasDB', JSON.stringify(notasGuardadas));
                 }
             }
@@ -775,6 +904,7 @@
                 const notaExistente = (datosDelInsumo.notas && datosDelInsumo.notas[nombre] !== undefined) ? datosDelInsumo.notas[nombre] : "";
                 const asisExistente = (datosDelInsumo.asistencia && datosDelInsumo.asistencia[nombre] !== undefined) ? datosDelInsumo.asistencia[nombre] : "A";
                 const obsExistente = (datosDelInsumo.observaciones && datosDelInsumo.observaciones[nombre] !== undefined) ? datosDelInsumo.observaciones[nombre] : "";
+                const tieneEvidencia = (datosDelInsumo.evidencias && datosDelInsumo.evidencias[nombre] !== undefined);
 
                 const esAsis = asisExistente === "A" || asisExistente === true;
                 const esAtraso = asisExistente === "ATR";
@@ -789,6 +919,16 @@
                             </div>
 
                             <div class="flex items-center gap-1.5 overflow-x-auto py-1 flex-shrink-0" style="scrollbar-width: none; -ms-overflow-style: none;">
+                                <!-- Botón Subir Evidencia -->
+                                <button type="button" onclick="activarSubidaEvidencia('${nombre}')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-1.5 rounded-xl border border-blue-200 transition flex items-center gap-1 text-[10px] font-bold px-2" title="Subir foto de evidencia">
+                                    <i class="fa-solid fa-camera"></i> Subir
+                                </button>
+
+                                <!-- Botón Ver Evidencia (cambia de color si ya tiene foto) -->
+                                <button type="button" onclick="verEvidencia('${nombre}')" class="${tieneEvidencia ? 'bg-indigo-600 text-white animate-pulse' : 'bg-gray-100 text-gray-300'} p-1.5 rounded-xl border border-gray-200 transition flex items-center gap-1 text-[10px] font-bold px-2" title="${tieneEvidencia ? 'Ver evidencia guardada' : 'Sin evidencia'}">
+                                    <i class="fa-solid fa-eye"></i> Ver
+                                </button>
+
                                 <label class="flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-xl border border-emerald-200 transition flex-shrink-0" title="Marcar Asistencia">
                                     <input type="checkbox" id="asis_${idLimpio}" data-estudiante-asis="${nombre}" class="asistencia-input hidden" ${esAsis ? 'checked' : ''} onchange="alternarVisto(this, '${nombre}')">
                                     <i id="visto_${idLimpio}" class="fa-solid fa-circle-check text-emerald-600 text-base ${esAsis ? '' : 'hidden'}"></i>
@@ -832,12 +972,13 @@
 
             const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
             if (!notasGuardadas[claveDB]) {
-                notasGuardadas[claveDB] = { fecha: fecha, notas: {}, asistencia: {}, observaciones: {} };
+                notasGuardadas[claveDB] = { fecha: fecha, notas: {}, asistencia: {}, observaciones: {}, evidencias: {} };
             }
 
             notasGuardadas[claveDB].fecha = fecha;
             if (!notasGuardadas[claveDB].asistencia) notasGuardadas[claveDB].asistencia = {};
             if (!notasGuardadas[claveDB].observaciones) notasGuardadas[claveDB].observaciones = {};
+            if (!notasGuardadas[claveDB].evidencias) notasGuardadas[claveDB].evidencias = {};
 
             const inputsNotas = document.querySelectorAll('.nota-input');
             inputsNotas.forEach(input => {
@@ -893,7 +1034,7 @@
                     ultimaActualizacion: new Date().toLocaleString()
                 }, { merge: true })
                 .then(() => {
-                    alert(`✅ ¡Datos guardados y respaldados en la nube para ${asignatura} - ${paralelo}!`);
+                    alert(`✅ ¡Datos y evidencias guardados en la nube para ${asignatura} - ${paralelo}!`);
                 })
                 .catch((error) => {
                     alert(`✅ Datos guardados localmente. (Error al sincronizar: ${error.message})`);
