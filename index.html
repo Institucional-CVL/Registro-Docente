@@ -533,7 +533,7 @@
             }
         }
 
-        // --- INTERRUPTOR DINÁMICO (VERDE / ROJO SUAVE CON 'X') ---
+        // --- INTERRUPTOR DINÁMICO FORZADO (VERDE / ROJO SUAVE CON 'X') ---
         function toggleAsistencia(estudiante) {
             const idLimpio = estudiante.replace(/\s+/g, '_');
             const btn = document.getElementById(`btn_asis_${idLimpio}`);
@@ -545,11 +545,11 @@
             btn.setAttribute('data-estado', newState ? 'true' : 'false');
 
             if (newState) {
-                btn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-500 text-white font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95";
+                btn.className = "asistencia-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-500 text-white font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95";
                 btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Asis`;
                 if (checkAtraso) checkAtraso.checked = false;
             } else {
-                btn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-100 text-rose-700 font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95";
+                btn.className = "asistencia-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-100 text-rose-700 font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95";
                 btn.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> X`;
             }
 
@@ -562,7 +562,7 @@
 
             if (checkbox.checked && btnAsis) {
                 btnAsis.setAttribute('data-estado', 'false');
-                btnAsis.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-100 text-rose-700 font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95";
+                btnAsis.className = "asistencia-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-100 text-rose-700 font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95";
                 btnAsis.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> X`;
             }
             actualizarContadorAsistenciaPantalla();
@@ -913,12 +913,12 @@
                 const num = idx + 1;
                 const idLimpio = nombre.replace(/\s+/g, '_');
                 const notaExistente = (datosDelInsumo.notas && datosDelInsumo.notas[nombre] !== undefined) ? datosDelInsumo.notas[nombre] : "";
-                const asisExistente = (datosDelInsumo.asistencia && datosDelInsumo.asistencia[nombre] !== undefined) ? datosDelInsumo.asistencia[nombre] : "A";
-                const obsExistente = (datosDelInsumo.observaciones && datosDelInsumo.observaciones[nombre] !== undefined) ? datosDelInsumo.observaciones[nombre] : "";
-                const tieneEvidencia = (datosDelInsumo.evidencias && datosDelInsumo.evidencias[nombre] !== undefined);
+                
+                // Determinación rigurosa del estado de asistencia por defecto
+                const asisVal = datosDelInsumo.asistencia && datosDelInsumo.asistencia[nombre];
+                const esAsis = (asisVal === "A" || asisVal === true || asisVal === undefined);
+                const esAtraso = (asisVal === "ATR");
 
-                const esAsis = asisExistente === "A" || asisExistente === true;
-                const esAtraso = asisExistente === "ATR";
                 const esNotaBaja = notaExistente !== "" && parseFloat(notaExistente) < 7;
 
                 contenedor.innerHTML += `
@@ -946,7 +946,7 @@
 
                                 <div class="flex items-center gap-1.5 overflow-x-auto py-1" style="scrollbar-width: none; -ms-overflow-style: none;">
                                     
-                                    <!-- Interruptor Asistencia (Verde / Rojo Suave con X) -->
+                                    <!-- Interruptor Asistencia Forzado (Verde o Rojo Suave con X) -->
                                     <button type="button" id="btn_asis_${idLimpio}" data-estado="${esAsis}" onclick="toggleAsistencia('${nombre}')" class="asistencia-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${esAsis ? 'border-emerald-300 bg-emerald-500 text-white' : 'border-rose-200 bg-rose-100 text-rose-700'} font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95" title="Clic para cambiar Asistencia / Falta">
                                         <i class="fa-solid ${esAsis ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${esAsis ? 'Asis' : 'X'}
                                     </button>
