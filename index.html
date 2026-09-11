@@ -911,19 +911,24 @@
 
                 contenedor.innerHTML += `
                     <div class="p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" onclick="editarNombreEstudiante('${nombre}')" title="Haz clic para editar el nombre">
+                        <!-- Usamos CSS Grid para separar limpiamente el nombre (izquierda) de los controles (derecha) -->
+                        <div class="grid grid-cols-12 items-center gap-2">
+                            
+                            <!-- Columna Izquierda: Número y Nombre del Estudiante (Ocupa 5 espacios) -->
+                            <div class="col-span-5 flex items-center gap-2 min-w-0 cursor-pointer" onclick="editarNombreEstudiante('${nombre}')" title="Haz clic para editar el nombre">
                                 <span class="w-6 h-6 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xs flex-shrink-0">${num}</span>
                                 <span class="text-xs font-bold text-gray-800 uppercase leading-snug break-words">${nombre}</span>
                             </div>
 
-                            <div class="flex items-center gap-2 flex-shrink-0">
-                                <!-- Columna de Botones Evidencia (Subir arriba de Ver) -->
+                            <!-- Columna Derecha: Botones de Evidencia, Asistencia, Nota y Borrar (Ocupa 7 espacios) -->
+                            <div class="col-span-7 flex items-center justify-end gap-1.5 flex-wrap">
+                                
+                                <!-- Botones de Evidencia (Subir arriba de Ver en columna vertical) -->
                                 <div class="flex flex-col gap-1">
                                     <button type="button" onclick="activarSubidaEvidencia('${nombre}')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-1 rounded border border-blue-200 transition flex items-center justify-center gap-1 text-[9px] font-bold px-1.5" title="Subir foto de evidencia">
                                         <i class="fa-solid fa-camera"></i> Subir
                                     </button>
-                                    <button type="button" onclick="verEvidencia('${nombre}')" class="${tieneEvidencia ? 'bg-indigo-600 text-white animate-pulse' : 'bg-gray-100 text-gray-300'} p-1 rounded border border-gray-200 transition flex items-center justify-center gap-1 text-[9px] font-bold px-1.5" title="${tieneEvidencia ? 'Ver evidencia guardada' : 'Sin evidencia'}">
+                                    <button type="button" onclick="verEvidencia('${nombre}')" class="${tieneEvidencia ? 'bg-indigo-600 text-white animate-pulse' : 'bg-gray-100 text-gray-300'} p-1 rounded border border-blue-200 transition flex items-center justify-center gap-1 text-[9px] font-bold px-1.5" title="${tieneEvidencia ? 'Ver evidencia guardada' : 'Sin evidencia'}">
                                         <i class="fa-solid fa-eye"></i> Ver
                                     </button>
                                 </div>
@@ -946,6 +951,7 @@
                                         <i class="fa-solid fa-xmark text-base"></i>
                                     </button>
                                 </div>
+
                             </div>
                         </div>
 
