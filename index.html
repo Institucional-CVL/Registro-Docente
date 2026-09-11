@@ -533,55 +533,43 @@
             }
         }
 
-        // --- INTERRUPTOR DINÁMICO FORZADO (VERDE / ROJO SUAVE CON 'X') ---
-        function toggleAsistencia(estudiante) {
+        function alternarVisto(checkbox, estudiante) {
             const idLimpio = estudiante.replace(/\s+/g, '_');
-            const btn = document.getElementById(`btn_asis_${idLimpio}`);
+            const iconoVisto = document.getElementById(`visto_${idLimpio}`);
             const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
 
-            const currentState = btn.getAttribute('data-estado') === 'true';
-            const newState = !currentState;
-
-            btn.setAttribute('data-estado', newState ? 'true' : 'false');
-
-            if (newState) {
-                btn.className = "asistencia-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-500 text-white font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95";
-                btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Asis`;
+            if (checkbox.checked) {
+                if (iconoVisto) iconoVisto.classList.remove('hidden');
                 if (checkAtraso) checkAtraso.checked = false;
             } else {
-                btn.className = "asistencia-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-100 text-rose-700 font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95";
-                btn.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> X`;
+                if (iconoVisto) iconoVisto.classList.add('hidden');
             }
-
             actualizarContadorAsistenciaPantalla();
         }
 
         function alternarAtraso(checkbox, estudiante) {
             const idLimpio = estudiante.replace(/\s+/g, '_');
-            const btnAsis = document.getElementById(`btn_asis_${idLimpio}`);
+            const checkAsistencia = document.getElementById(`asis_${idLimpio}`);
+            const iconoVisto = document.getElementById(`visto_${idLimpio}`);
 
-            if (checkbox.checked && btnAsis) {
-                btnAsis.setAttribute('data-estado', 'false');
-                btnAsis.className = "asistencia-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-100 text-rose-700 font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95";
-                btnAsis.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> X`;
+            if (checkbox.checked) {
+                if (checkAsistencia) checkAsistencia.checked = false;
+                if (iconoVisto) iconoVisto.classList.add('hidden');
             }
             actualizarContadorAsistenciaPantalla();
         }
 
         function actualizarContadorAsistenciaPantalla() {
-            const botonesAsis = document.querySelectorAll('.asistencia-btn');
+            const inputsAsis = document.querySelectorAll('.asistencia-input');
             const inputsAtraso = document.querySelectorAll('.atraso-input');
             let totalAsis = 0;
             let totalFalt = 0;
 
-            botonesAsis.forEach((btn, idx) => {
-                const isAsis = btn.getAttribute('data-estado') === 'true';
+            inputsAsis.forEach((check, idx) => {
                 const atrasoCheck = inputsAtraso[idx];
-                const isAtraso = atrasoCheck && atrasoCheck.checked;
-
-                if (isAsis) {
+                if (check.checked) {
                     totalAsis++;
-                } else if (!isAtraso) {
+                } else if (!atrasoCheck || !atrasoCheck.checked) {
                     totalFalt++;
                 }
             });
@@ -913,28 +901,29 @@
                 const num = idx + 1;
                 const idLimpio = nombre.replace(/\s+/g, '_');
                 const notaExistente = (datosDelInsumo.notas && datosDelInsumo.notas[nombre] !== undefined) ? datosDelInsumo.notas[nombre] : "";
-                
-                // Determinación rigurosa del estado de asistencia por defecto
-                const asisVal = datosDelInsumo.asistencia && datosDelInsumo.asistencia[nombre];
-                const esAsis = (asisVal === "A" || asisVal === true || asisVal === undefined);
-                const esAtraso = (asisVal === "ATR");
+                const asisExistente = (datosDelInsumo.asistencia && datosDelInsumo.asistencia[nombre] !== undefined) ? datosDelInsumo.asistencia[nombre] : "A";
+                const obsExistente = (datosDelInsumo.observaciones && datosDelInsumo.observaciones[nombre] !== undefined) ? datosDelInsumo.observaciones[nombre] : "";
+                const tieneEvidencia = (datosDelInsumo.evidencias && datosDelInsumo.evidencias[nombre] !== undefined);
 
+                const esAsis = asisExistente === "A" || asisExistente === true;
+                const esAtraso = asisExistente === "ATR";
                 const esNotaBaja = notaExistente !== "" && parseFloat(notaExistente) < 7;
 
                 contenedor.innerHTML += `
                     <div class="p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none">
+                        <!-- Usamos CSS Grid para separar limpiamente el nombre (izquierda) de los controles (derecha) -->
                         <div class="grid grid-cols-12 items-center gap-2">
                             
-                            <!-- Columna Izquierda: Número y Nombre del Estudiante -->
+                            <!-- Columna Izquierda: Número y Nombre del Estudiante (Ocupa 5 espacios) -->
                             <div class="col-span-5 flex items-center gap-2 min-w-0 cursor-pointer" onclick="editarNombreEstudiante('${nombre}')" title="Haz clic para editar el nombre">
                                 <span class="w-6 h-6 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xs flex-shrink-0">${num}</span>
                                 <span class="text-xs font-bold text-gray-800 uppercase leading-snug break-words">${nombre}</span>
                             </div>
 
-                            <!-- Columna Derecha: Controles -->
+                            <!-- Columna Derecha: Botones de Evidencia, Asistencia, Nota y Borrar (Ocupa 7 espacios) -->
                             <div class="col-span-7 flex items-center justify-end gap-1.5 flex-wrap">
                                 
-                                <!-- Botones de Evidencia -->
+                                <!-- Botones de Evidencia (Subir arriba de Ver en columna vertical) -->
                                 <div class="flex flex-col gap-1">
                                     <button type="button" onclick="activarSubidaEvidencia('${nombre}')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-1 rounded border border-blue-200 transition flex items-center justify-center gap-1 text-[9px] font-bold px-1.5" title="Subir foto de evidencia">
                                         <i class="fa-solid fa-camera"></i> Subir
@@ -945,22 +934,19 @@
                                 </div>
 
                                 <div class="flex items-center gap-1.5 overflow-x-auto py-1" style="scrollbar-width: none; -ms-overflow-style: none;">
-                                    
-                                    <!-- Interruptor Asistencia Forzado (Verde o Rojo Suave con X) -->
-                                    <button type="button" id="btn_asis_${idLimpio}" data-estado="${esAsis}" onclick="toggleAsistencia('${nombre}')" class="asistencia-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${esAsis ? 'border-emerald-300 bg-emerald-500 text-white' : 'border-rose-200 bg-rose-100 text-rose-700'} font-bold text-xs transition-all shadow-sm flex-shrink-0 active:scale-95" title="Clic para cambiar Asistencia / Falta">
-                                        <i class="fa-solid ${esAsis ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${esAsis ? 'Asis' : 'X'}
-                                    </button>
+                                    <label class="flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-xl border border-emerald-200 transition flex-shrink-0" title="Marcar Asistencia">
+                                        <input type="checkbox" id="asis_${idLimpio}" data-estudiante-asis="${nombre}" class="asistencia-input hidden" ${esAsis ? 'checked' : ''} onchange="alternarVisto(this, '${nombre}')">
+                                        <i id="visto_${idLimpio}" class="fa-solid fa-circle-check text-emerald-600 text-base ${esAsis ? '' : 'hidden'}"></i>
+                                        <span class="text-[10px] font-bold text-emerald-800">Asis</span>
+                                    </label>
 
-                                    <!-- Casillero Atraso -->
                                     <label class="flex items-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-200 transition flex-shrink-0" title="Marcar Atraso">
                                         <input type="checkbox" id="atraso_${idLimpio}" data-estudiante-atraso="${nombre}" class="atraso-input h-3.5 w-3.5 text-amber-600 rounded focus:ring-amber-500" ${esAtraso ? 'checked' : ''} onchange="alternarAtraso(this, '${nombre}')">
                                         <span class="text-[10px] font-bold text-amber-800">Atr</span>
                                     </label>
 
-                                    <!-- Nota -->
                                     <input type="number" step="0.01" min="0" max="10" placeholder="0.00" value="${notaExistente}" data-estudiante="${nombre}" oninput="validarNotaInput(this)" class="nota-input w-14 bg-gray-50 border-2 border-indigo-200 focus:border-indigo-600 focus:bg-white text-gray-900 font-bold text-center text-sm rounded-xl py-1 px-1 focus:outline-none transition flex-shrink-0 ${esNotaBaja ? 'nota-baja' : ''}">
                                     
-                                    <!-- Borrar Alumno -->
                                     <button type="button" onclick="eliminarEstudiante('${nombre}')" class="text-gray-300 hover:text-rose-500 p-1 rounded-lg transition flex-shrink-0" title="Eliminar alumno">
                                         <i class="fa-solid fa-xmark text-base"></i>
                                     </button>
@@ -1017,23 +1003,18 @@
                 }
             });
 
-            const botonesAsis = document.querySelectorAll('.asistencia-btn');
-            botonesAsis.forEach(btn => {
-                const idLimpio = btn.id.replace('btn_asis_', '');
+            const inputsAsis = document.querySelectorAll('.asistencia-input');
+            inputsAsis.forEach(check => {
+                const estudiante = check.getAttribute('data-estudiante-asis');
+                const idLimpio = estudiante.replace(/\s+/g, '_');
                 const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
-                const estudiante = checkAtraso ? checkAtraso.getAttribute('data-estudiante-atraso') : null;
 
-                if (estudiante) {
-                    const isAsis = btn.getAttribute('data-estado') === 'true';
-                    const isAtraso = checkAtraso && checkAtraso.checked;
-
-                    if (isAtraso) {
-                        notasGuardadas[claveDB].asistencia[estudiante] = "ATR";
-                    } else if (isAsis) {
-                        notasGuardadas[claveDB].asistencia[estudiante] = "A";
-                    } else {
-                        notasGuardadas[claveDB].asistencia[estudiante] = "F";
-                    }
+                if (checkAtraso && checkAtraso.checked) {
+                    notasGuardadas[claveDB].asistencia[estudiante] = "ATR";
+                } else if (check.checked) {
+                    notasGuardadas[claveDB].asistencia[estudiante] = "A";
+                } else {
+                    notasGuardadas[claveDB].asistencia[estudiante] = "F";
                 }
             });
 
