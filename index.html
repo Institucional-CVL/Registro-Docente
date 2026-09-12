@@ -24,6 +24,12 @@
             color: #b91c1c !important;
         }
 
+        /* Estilo para marcar la falta visualmente con rojo suave */
+        .falta-marcada {
+            background-color: #fef2f2 !important;
+            border-color: #fca5a5 !important;
+        }
+
         [contenteditable="true"]:hover {
             outline: 1px dashed rgba(255, 255, 255, 0.5);
             border-radius: 4px;
@@ -533,43 +539,71 @@
             }
         }
 
-        function alternarVisto(checkbox, estudiante) {
+        // --- NUEVA LÓGICA DE INTERRUPTOR PARA ASISTENCIA (VISTO ↔ X ROJA) ---
+        function cambiarEstadoAsistencia(estudiante) {
             const idLimpio = estudiante.replace(/\s+/g, '_');
             const iconoVisto = document.getElementById(`visto_${idLimpio}`);
-            const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
+            const iconoX = document.getElementById(`falta_x_${idLimpio}`);
+            const contenedorAsis = document.getElementById(`contenedor_asis_${idLimpio}`);
 
-            if (checkbox.checked) {
-                if (iconoVisto) iconoVisto.classList.remove('hidden');
-                if (checkAtraso) checkAtraso.checked = false;
+            // Detectar estado actual basado en qué icono está visible
+            const esAsistido = !iconoVisto.classList.contains('hidden');
+            const esFalta = !iconoX.classList.contains('hidden');
+
+            if (esAsistido) {
+                // Pasar de Asistido (visto) a Falta (X roja)
+                iconoVisto.classList.add('hidden');
+                iconoX.classList.remove('hidden');
+                contenedorAsis.classList.add('falta-marcada');
+                contenedorAsis.title = "Falta (Clic para cambiar a Atraso/Asistencia)";
+            } else if (esFalta) {
+                // Pasar de Falta a Asistencia normal
+                iconoX.classList.add('hidden');
+                iconoVisto.classList.remove('hidden');
+                contenedorAsis.classList.remove('falta-marcada');
+                contenedorAsis.title = "Asistencia (Clic para marcar Falta)";
             } else {
-                if (iconoVisto) iconoVisto.classList.add('hidden');
+                // Estado por defecto si estuviera limpio
+                iconoVisto.classList.remove('hidden');
+                contenedorAsis.classList.remove('falta-marcada');
             }
             actualizarContadorAsistenciaPantalla();
         }
 
         function alternarAtraso(checkbox, estudiante) {
             const idLimpio = estudiante.replace(/\s+/g, '_');
-            const checkAsistencia = document.getElementById(`asis_${idLimpio}`);
             const iconoVisto = document.getElementById(`visto_${idLimpio}`);
+            const iconoX = document.getElementById(`falta_x_${idLimpio}`);
+            const contenedorAsis = document.getElementById(`contenedor_asis_${idLimpio}`);
 
             if (checkbox.checked) {
-                if (checkAsistencia) checkAsistencia.checked = false;
+                // Si se marca atraso, se quita el visto y la X de falta
                 if (iconoVisto) iconoVisto.classList.add('hidden');
+                if (iconoX) iconoX.classList.add('hidden');
+                if (contenedorAsis) contenedorAsis.classList.remove('falta-marcada');
+            } else {
+                // Por defecto vuelve a estar presente como Asistido al desmarcar atraso
+                if (iconoVisto) iconoVisto.classList.remove('hidden');
             }
             actualizarContadorAsistenciaPantalla();
         }
 
         function actualizarContadorAsistenciaPantalla() {
-            const inputsAsis = document.querySelectorAll('.asistencia-input');
+            const contenedoresAsis = document.querySelectorAll('.asistencia-interruptor-box');
             const inputsAtraso = document.querySelectorAll('.atraso-input');
             let totalAsis = 0;
             let totalFalt = 0;
 
-            inputsAsis.forEach((check, idx) => {
+            contenedoresAsis.forEach((cont, idx) => {
+                const idLimpio = cont.id.replace('contenedor_asis_', '');
+                const iconoVisto = document.getElementById(`visto_${idLimpio}`);
                 const atrasoCheck = inputsAtraso[idx];
-                if (check.checked) {
+
+                if (atrasoCheck && atrasoCheck.checked) {
+                    // Cuentan como presentes/atrasados según tu lógica
+                } else if (iconoVisto && !iconoVisto.classList.contains('hidden')) {
                     totalAsis++;
-                } else if (!atrasoCheck || !atrasoCheck.checked) {
+                } else {
                     totalFalt++;
                 }
             });
@@ -905,25 +939,26 @@
                 const obsExistente = (datosDelInsumo.observaciones && datosDelInsumo.observaciones[nombre] !== undefined) ? datosDelInsumo.observaciones[nombre] : "";
                 const tieneEvidencia = (datosDelInsumo.evidencias && datosDelInsumo.evidencias[nombre] !== undefined);
 
-                const esAsis = asisExistente === "A" || asisExistente === true;
-                const esAtraso = asisExistente === "ATR";
+                // Determinar estados iniciales
+                const esFalta = (asisExistente === "F");
+                const esAtraso = (asisExistente === "ATR");
+                const esAsis = !esFalta && !esAtraso;
                 const esNotaBaja = notaExistente !== "" && parseFloat(notaExistente) < 7;
 
                 contenedor.innerHTML += `
                     <div class="p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none">
-                        <!-- Usamos CSS Grid para separar limpiamente el nombre (izquierda) de los controles (derecha) -->
                         <div class="grid grid-cols-12 items-center gap-2">
                             
-                            <!-- Columna Izquierda: Número y Nombre del Estudiante (Ocupa 5 espacios) -->
+                            <!-- Columna Izquierda: Número y Nombre del Estudiante -->
                             <div class="col-span-5 flex items-center gap-2 min-w-0 cursor-pointer" onclick="editarNombreEstudiante('${nombre}')" title="Haz clic para editar el nombre">
                                 <span class="w-6 h-6 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xs flex-shrink-0">${num}</span>
                                 <span class="text-xs font-bold text-gray-800 uppercase leading-snug break-words">${nombre}</span>
                             </div>
 
-                            <!-- Columna Derecha: Botones de Evidencia, Asistencia, Nota y Borrar (Ocupa 7 espacios) -->
+                            <!-- Columna Derecha: Controles de Evidencia, Asistencia Interruptor, Nota y Borrar -->
                             <div class="col-span-7 flex items-center justify-end gap-1.5 flex-wrap">
                                 
-                                <!-- Botones de Evidencia (Subir arriba de Ver en columna vertical) -->
+                                <!-- Botones de Evidencia -->
                                 <div class="flex flex-col gap-1">
                                     <button type="button" onclick="activarSubidaEvidencia('${nombre}')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-1 rounded border border-blue-200 transition flex items-center justify-center gap-1 text-[9px] font-bold px-1.5" title="Subir foto de evidencia">
                                         <i class="fa-solid fa-camera"></i> Subir
@@ -934,11 +969,13 @@
                                 </div>
 
                                 <div class="flex items-center gap-1.5 overflow-x-auto py-1" style="scrollbar-width: none; -ms-overflow-style: none;">
-                                    <label class="flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-xl border border-emerald-200 transition flex-shrink-0" title="Marcar Asistencia">
-                                        <input type="checkbox" id="asis_${idLimpio}" data-estudiante-asis="${nombre}" class="asistencia-input hidden" ${esAsis ? 'checked' : ''} onchange="alternarVisto(this, '${nombre}')">
+                                    
+                                    <!-- Casilla tipo interruptor para Asistencia / Falta con X roja y fondo rojo suave -->
+                                    <div id="contenedor_asis_${idLimpio}" onclick="cambiarEstadoAsistencia('${nombre}')" class="flex items-center gap-1 cursor-pointer px-2 py-1.5 rounded-xl border transition flex-shrink-0 select-none ${esFalta ? 'falta-marcada bg-red-50 border-red-300' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'}" title="Haz clic para alternar entre Asistencia y Falta">
                                         <i id="visto_${idLimpio}" class="fa-solid fa-circle-check text-emerald-600 text-base ${esAsis ? '' : 'hidden'}"></i>
-                                        <span class="text-[10px] font-bold text-emerald-800">Asis</span>
-                                    </label>
+                                        <i id="falta_x_${idLimpio}" class="fa-solid fa-circle-xmark text-rose-600 text-base ${esFalta ? '' : 'hidden'}"></i>
+                                        <span class="text-[10px] font-bold ${esFalta ? 'text-rose-800' : 'text-emerald-800'}">Asis/Falta</span>
+                                    </div>
 
                                     <label class="flex items-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-200 transition flex-shrink-0" title="Marcar Atraso">
                                         <input type="checkbox" id="atraso_${idLimpio}" data-estudiante-atraso="${nombre}" class="atraso-input h-3.5 w-3.5 text-amber-600 rounded focus:ring-amber-500" ${esAtraso ? 'checked' : ''} onchange="alternarAtraso(this, '${nombre}')">
@@ -1003,15 +1040,19 @@
                 }
             });
 
-            const inputsAsis = document.querySelectorAll('.asistencia-input');
-            inputsAsis.forEach(check => {
-                const estudiante = check.getAttribute('data-estudiante-asis');
+            const contenedoresAsis = document.querySelectorAll('.asistencia-interruptor-box');
+            const inputsAtraso = document.querySelectorAll('.atraso-input');
+            
+            // Guardar el estado de asistencia según el interruptor visual
+            const lista = estudiantesData[paralelo] || [];
+            lista.forEach(estudiante => {
                 const idLimpio = estudiante.replace(/\s+/g, '_');
                 const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
+                const iconoVisto = document.getElementById(`visto_${idLimpio}`);
 
                 if (checkAtraso && checkAtraso.checked) {
                     notasGuardadas[claveDB].asistencia[estudiante] = "ATR";
-                } else if (check.checked) {
+                } else if (iconoVisto && !iconoVisto.classList.contains('hidden')) {
                     notasGuardadas[claveDB].asistencia[estudiante] = "A";
                 } else {
                     notasGuardadas[claveDB].asistencia[estudiante] = "F";
@@ -1041,7 +1082,7 @@
                     ultimaActualizacion: new Date().toLocaleString()
                 }, { merge: true })
                 .then(() => {
-                    alert(`✅ ¡Datos y evidencias guardados en la nube para ${asignatura} - ${paralelo}!`);
+                    alert(`✅ ¡Datos y asistencias guardados en la nube para ${asignatura} - ${paralelo}!`);
                 })
                 .catch((error) => {
                     alert(`✅ Datos guardados localmente. (Error al sincronizar: ${error.message})`);
