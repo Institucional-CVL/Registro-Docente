@@ -539,33 +539,28 @@
             }
         }
 
-        // --- NUEVA LÓGICA DE INTERRUPTOR PARA ASISTENCIA (VISTO ↔ X ROJA) ---
+        // --- LÓGICA DE INTERRUPTOR DE ASISTENCIA CORREGIDA ---
         function cambiarEstadoAsistencia(estudiante) {
             const idLimpio = estudiante.replace(/\s+/g, '_');
             const iconoVisto = document.getElementById(`visto_${idLimpio}`);
             const iconoX = document.getElementById(`falta_x_${idLimpio}`);
             const contenedorAsis = document.getElementById(`contenedor_asis_${idLimpio}`);
 
-            // Detectar estado actual basado en qué icono está visible
-            const esAsistido = !iconoVisto.classList.contains('hidden');
-            const esFalta = !iconoX.classList.contains('hidden');
+            // Verificar si actualmente está marcado como asistido (visto verde visible)
+            const esAsistidoActual = !iconoVisto.classList.contains('hidden');
 
-            if (esAsistido) {
-                // Pasar de Asistido (visto) a Falta (X roja)
+            if (esAsistidoActual) {
+                // Cambiar a FALTA (Ocultar visto, mostrar X roja, poner fondo rojo suave)
                 iconoVisto.classList.add('hidden');
                 iconoX.classList.remove('hidden');
-                contenedorAsis.classList.add('falta-marcada');
-                contenedorAsis.title = "Falta (Clic para cambiar a Atraso/Asistencia)";
-            } else if (esFalta) {
-                // Pasar de Falta a Asistencia normal
+                contenedorAsis.classList.remove('bg-emerald-50', 'border-emerald-200', 'hover:bg-emerald-100');
+                contenedorAsis.classList.add('falta-marcada', 'bg-red-50', 'border-red-300');
+            } else {
+                // Cambiar a ASISTENCIA (Mostrar visto verde, ocultar X roja, poner fondo verde suave)
                 iconoX.classList.add('hidden');
                 iconoVisto.classList.remove('hidden');
-                contenedorAsis.classList.remove('falta-marcada');
-                contenedorAsis.title = "Asistencia (Clic para marcar Falta)";
-            } else {
-                // Estado por defecto si estuviera limpio
-                iconoVisto.classList.remove('hidden');
-                contenedorAsis.classList.remove('falta-marcada');
+                contenedorAsis.classList.remove('falta-marcada', 'bg-red-50', 'border-red-300');
+                contenedorAsis.classList.add('bg-emerald-50', 'border-emerald-200', 'hover:bg-emerald-100');
             }
             actualizarContadorAsistenciaPantalla();
         }
@@ -577,13 +572,18 @@
             const contenedorAsis = document.getElementById(`contenedor_asis_${idLimpio}`);
 
             if (checkbox.checked) {
-                // Si se marca atraso, se quita el visto y la X de falta
                 if (iconoVisto) iconoVisto.classList.add('hidden');
                 if (iconoX) iconoX.classList.add('hidden');
-                if (contenedorAsis) contenedorAsis.classList.remove('falta-marcada');
+                if (contenedorAsis) {
+                    contenedorAsis.classList.remove('falta-marcada', 'bg-red-50', 'border-red-300', 'bg-emerald-50', 'border-emerald-200');
+                    contenedorAsis.classList.add('bg-amber-50', 'border-amber-200');
+                }
             } else {
-                // Por defecto vuelve a estar presente como Asistido al desmarcar atraso
                 if (iconoVisto) iconoVisto.classList.remove('hidden');
+                if (contenedorAsis) {
+                    contenedorAsis.classList.remove('bg-amber-50', 'border-amber-200', 'falta-marcada', 'bg-red-50', 'border-red-300');
+                    contenedorAsis.classList.add('bg-emerald-50', 'border-emerald-200', 'hover:bg-emerald-100');
+                }
             }
             actualizarContadorAsistenciaPantalla();
         }
@@ -600,7 +600,7 @@
                 const atrasoCheck = inputsAtraso[idx];
 
                 if (atrasoCheck && atrasoCheck.checked) {
-                    // Cuentan como presentes/atrasados según tu lógica
+                    // Cuentan aparte o como presentes según criterio
                 } else if (iconoVisto && !iconoVisto.classList.contains('hidden')) {
                     totalAsis++;
                 } else {
@@ -970,8 +970,8 @@
 
                                 <div class="flex items-center gap-1.5 overflow-x-auto py-1" style="scrollbar-width: none; -ms-overflow-style: none;">
                                     
-                                    <!-- Casilla tipo interruptor para Asistencia / Falta con X roja y fondo rojo suave -->
-                                    <div id="contenedor_asis_${idLimpio}" onclick="cambiarEstadoAsistencia('${nombre}')" class="flex items-center gap-1 cursor-pointer px-2 py-1.5 rounded-xl border transition flex-shrink-0 select-none ${esFalta ? 'falta-marcada bg-red-50 border-red-300' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'}" title="Haz clic para alternar entre Asistencia y Falta">
+                                    <!-- Casilla tipo interruptor corregida con la clase requerida para el contador -->
+                                    <div id="contenedor_asis_${idLimpio}" onclick="cambiarEstadoAsistencia('${nombre}')" class="asistencia-interruptor-box flex items-center gap-1 cursor-pointer px-2 py-1.5 rounded-xl border transition flex-shrink-0 select-none ${esFalta ? 'falta-marcada bg-red-50 border-red-300' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'}" title="Haz clic para alternar entre Asistencia y Falta">
                                         <i id="visto_${idLimpio}" class="fa-solid fa-circle-check text-emerald-600 text-base ${esAsis ? '' : 'hidden'}"></i>
                                         <i id="falta_x_${idLimpio}" class="fa-solid fa-circle-xmark text-rose-600 text-base ${esFalta ? '' : 'hidden'}"></i>
                                         <span class="text-[10px] font-bold ${esFalta ? 'text-rose-800' : 'text-emerald-800'}">Asis/Falta</span>
@@ -1040,11 +1040,9 @@
                 }
             });
 
-            const contenedoresAsis = document.querySelectorAll('.asistencia-interruptor-box');
             const inputsAtraso = document.querySelectorAll('.atraso-input');
-            
-            // Guardar el estado de asistencia según el interruptor visual
             const lista = estudiantesData[paralelo] || [];
+            
             lista.forEach(estudiante => {
                 const idLimpio = estudiante.replace(/\s+/g, '_');
                 const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
