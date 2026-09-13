@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Notas y Asistencia - Institucional</title>
+
+    <!-- ===== Configuración PWA (permite "Instalar" la app en el celular) ===== -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <!-- iPhone/Safari: hace que se abra a pantalla completa al añadirla a inicio -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Registro Docente">
+    <link rel="apple-touch-icon" href="logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -1747,6 +1756,14 @@
             renderizarSelectParalelos();
             renderizarSelectInsumos();
             cargarEstudiantesYNotas();
+
+            // Registra el service worker para que la app sea instalable (PWA).
+            // Si falla (ej. navegador antiguo), la app sigue funcionando igual, solo sin esta capa extra.
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('service-worker.js').catch(err => {
+                    console.warn('No se pudo registrar el service worker (la app funciona igual, solo sin modo instalable):', err);
+                });
+            }
         };
     </script>
 </body>
