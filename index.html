@@ -24,12 +24,6 @@
             color: #b91c1c !important;
         }
 
-        /* Estilo para marcar la falta visualmente con rojo suave */
-        .falta-marcada {
-            background-color: #fef2f2 !important;
-            border-color: #fca5a5 !important;
-        }
-
         [contenteditable="true"]:hover {
             outline: 1px dashed rgba(255, 255, 255, 0.5);
             border-radius: 4px;
@@ -123,124 +117,149 @@
 
         <main class="max-w-md mx-auto p-4 space-y-4">
 
-            <!-- Barra de Información del Usuario -->
-            <div class="bg-blue-50/70 border border-blue-200 p-3.5 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
+            <!-- Barra compacta de usuario + accesos rápidos (antes eran 2 tarjetas separadas) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-3 flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
+                    <i class="fa-solid fa-circle-user text-indigo-400 text-lg flex-shrink-0" aria-hidden="true"></i>
                     <span id="usuario-nombre" class="text-xs font-bold text-indigo-900 truncate"></span>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex items-center gap-1.5 flex-shrink-0">
                     <span id="sync-status" class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">☁️ Sincronizado</span>
-                    <button onclick="cerrarSesionGoogle()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">Salir</button>
-                </div>
-            </div>
-
-            <!-- Carga rápida de Excel -->
-            <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
-                <div class="text-xs">
-                    <span class="font-bold text-indigo-900 block">📁 Cargar Nómina desde Excel</span>
-                    <span class="text-indigo-700">Sube un Excel para actualizar alumnos</span>
-                </div>
-                <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl cursor-pointer shadow active:scale-95 transition flex-shrink-0">
-                    <i class="fa-solid fa-upload mr-1"></i> Subir
-                    <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="cargarArchivoExcel(event)">
-                </label>
-            </div>
-
-            <!-- Gestión de Asignaturas -->
-            <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
-                <div class="flex items-center justify-between mb-1">
-                    <label class="block text-xs font-bold text-indigo-900 uppercase">Gestión de Asignaturas</label>
-                    <div class="flex gap-1">
-                        <button type="button" onclick="crearNuevaAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition">
-                            <i class="fa-solid fa-plus"></i> Asignatura
-                        </button>
-                        <button type="button" onclick="eliminarAsignaturaActual()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2 py-1 rounded-lg text-[11px] transition shadow-sm" title="Eliminar asignatura actual">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </div>
-                </div>
-                <div>
-                    <select id="selectAsignatura" onchange="alCambiarAsignatura()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                    </select>
-                </div>
-            </div>
-
-            <!-- Selector y Gestión de Paralelos -->
-            <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
-                <div class="flex items-center justify-between mb-1">
-                    <label class="block text-xs font-bold text-indigo-900 uppercase">Paralelos de esta Asignatura</label>
-                    <div class="flex gap-1">
-                        <button type="button" onclick="crearNuevoParaleloAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition">
-                            <i class="fa-solid fa-plus"></i> Paralelo
-                        </button>
-                        <button type="button" onclick="eliminarParaleloActualAsignatura()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2 py-1 rounded-lg text-[11px] transition shadow-sm" title="Quitar este paralelo de esta asignatura">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <select id="selectParalelo" onchange="alCambiarSeleccion()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                        </select>
-                    </div>
-                    <div>
-                        <select id="selectTrimestre" onchange="alCambiarSeleccion()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                            <option value="1er Trimestre">1er Trimestre</option>
-                            <option value="2do Trimestre">2do Trimestre</option>
-                            <option value="3er Trimestre">3er Trimestre</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-indigo-900 uppercase mb-1">📅 Fecha de Evaluación / Clase</label>
-                    <input type="date" id="inputFecha" onchange="guardarFechaCambiada()" class="w-full bg-white border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                </div>
-            </div>
-
-            <!-- Gestión de Insumos -->
-            <div class="bg-blue-50/70 p-4 rounded-2xl shadow-sm border border-blue-200 space-y-3">
-                <label class="block text-xs font-bold text-indigo-900 uppercase">Gestión de Insumos</label>
-                
-                <div class="flex gap-2">
-                    <select id="selectInsumos" onchange="alCambiarInsumoSelect()" class="w-full bg-white border border-indigo-200 text-indigo-950 font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                    </select>
-                    <button type="button" onclick="agregarNuevoInsumo()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0">
-                        <i class="fa-solid fa-plus"></i> Insumo
+                    <label class="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 cursor-pointer p-2 rounded-lg transition" title="Subir nómina desde Excel">
+                        <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
+                        <span class="sr-only">Subir nómina desde Excel</span>
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="cargarArchivoExcel(event)">
+                    </label>
+                    <button onclick="cerrarSesionGoogle()" class="text-gray-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition" title="Cerrar sesión" aria-label="Cerrar sesión">
+                        <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
-                    <button type="button" onclick="eliminarInsumoActual()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0">
-                        <i class="fa-solid fa-trash-can"></i>
+                </div>
+            </div>
+
+            <!-- Configuración de clase: asignatura, paralelo, trimestre, fecha e insumo (unificados y colapsables) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <button type="button" id="botonTogglePanel" onclick="toggleConfigPanel()" aria-expanded="true" aria-controls="panelConfigDetalle" class="w-full flex items-center justify-between gap-2 px-4 py-3 bg-blue-50/80 hover:bg-blue-100/70 transition text-left">
+                    <span class="text-xs font-bold text-indigo-900 uppercase tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-500"></i> Configuración de clase
+                    </span>
+                    <i id="iconoTogglePanel" class="fa-solid fa-chevron-up text-indigo-500 transition-transform"></i>
+                </button>
+
+                <!-- Resumen de una línea, visible solo cuando el panel está colapsado -->
+                <div id="panelConfigResumen" class="hidden px-4 py-3 border-t border-blue-100 flex items-center justify-between gap-2">
+                    <p id="textoResumenConfig" class="text-[11px] text-gray-600 leading-snug"></p>
+                    <button type="button" onclick="toggleConfigPanel(true)" class="text-indigo-600 font-bold text-xs underline flex-shrink-0">Cambiar</button>
+                </div>
+
+                <div id="panelConfigDetalle" class="p-4 space-y-4 border-t border-blue-100">
+
+                    <!-- Asignatura -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-[11px] font-bold text-indigo-900 uppercase">Asignatura</label>
+                            <div class="flex gap-1">
+                                <button type="button" onclick="crearNuevaAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition" aria-label="Crear nueva asignatura">
+                                    <i class="fa-solid fa-plus"></i> Nueva
+                                </button>
+                                <button type="button" onclick="eliminarAsignaturaActual()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2 py-1 rounded-lg text-[11px] transition shadow-sm" title="Eliminar asignatura actual" aria-label="Eliminar asignatura actual">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <select id="selectAsignatura" onchange="alCambiarAsignatura()" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                        </select>
+                    </div>
+
+                    <!-- Paralelo y Trimestre -->
+                    <div class="space-y-2 pt-3 border-t border-blue-100">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-[11px] font-bold text-indigo-900 uppercase">Paralelo y trimestre</label>
+                            <button type="button" onclick="crearNuevoParaleloAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition" aria-label="Agregar paralelo">
+                                <i class="fa-solid fa-plus"></i> Paralelo
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
+                            <select id="selectParalelo" onchange="alCambiarSeleccion()" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                            </select>
+                            <select id="selectTrimestre" onchange="alCambiarSeleccion()" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                                <option value="1er Trimestre">1er Trim.</option>
+                                <option value="2do Trimestre">2do Trim.</option>
+                                <option value="3er Trimestre">3er Trim.</option>
+                            </select>
+                            <button type="button" onclick="eliminarParaleloActualAsignatura()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2.5 rounded-xl text-xs transition shadow-sm" title="Quitar este paralelo de esta asignatura" aria-label="Quitar paralelo">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Fecha -->
+                    <div class="pt-3 border-t border-blue-100">
+                        <label class="block text-[11px] font-bold text-indigo-900 uppercase mb-1">📅 Fecha de evaluación / clase</label>
+                        <input type="date" id="inputFecha" onchange="guardarFechaCambiada()" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                    </div>
+
+                    <!-- Insumos -->
+                    <div class="pt-3 border-t border-blue-100 space-y-2">
+                        <label class="block text-[11px] font-bold text-indigo-900 uppercase">Insumo de evaluación</label>
+                        <div class="flex gap-2">
+                            <select id="selectInsumos" onchange="alCambiarInsumoSelect()" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                            </select>
+                            <button type="button" onclick="agregarNuevoInsumo()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" aria-label="Agregar insumo">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                            <button type="button" onclick="eliminarInsumoActual()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" aria-label="Eliminar insumo">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="toggleConfigPanel(false)" class="w-full text-center text-[11px] font-bold text-indigo-500 hover:text-indigo-700 pt-1">
+                        <i class="fa-solid fa-chevron-up"></i> Ocultar configuración
                     </button>
                 </div>
             </div>
 
             <!-- Lista de Estudiantes -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-100 flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Nómina</span>
-                        <button type="button" onclick="agregarEstudianteManual()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded-lg text-[11px] shadow flex items-center gap-1 active:scale-95 transition">
-                            <i class="fa-solid fa-user-plus"></i> + Alumno
+                <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-100 space-y-2.5">
+                    <div class="flex justify-between items-center gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Nómina</span>
+                            <button type="button" onclick="agregarEstudianteManual()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded-lg text-[11px] shadow flex items-center gap-1 active:scale-95 transition flex-shrink-0">
+                                <i class="fa-solid fa-user-plus"></i> Alumno
+                            </button>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span id="totalAlumnos" class="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full block">0 Alumnos</span>
+                            <span id="resumenAsistenciaContador" class="text-[10px] text-indigo-700 font-bold mt-0.5 block">asis: 0 · atr: 0 · falt: 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Buscador rápido por nombre -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" aria-hidden="true"></i>
+                        <input type="text" id="inputBuscarAlumno" oninput="filtrarNomina()" placeholder="Buscar alumno por nombre..." class="w-full bg-white border border-gray-200 focus:border-indigo-400 rounded-xl pl-8 pr-8 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200 transition" aria-label="Buscar alumno por nombre">
+                        <button type="button" id="btnLimpiarBusqueda" onclick="limpiarBusquedaAlumno()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-rose-500 p-1" aria-label="Limpiar búsqueda">
+                            <i class="fa-solid fa-circle-xmark text-xs"></i>
                         </button>
                     </div>
-                    <div class="text-right">
-                        <span id="totalAlumnos" class="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full block">0 Alumnos</span>
-                        <span id="resumenAsistenciaContador" class="text-[10px] text-indigo-700 font-bold mt-0.5 block">asis: 0 · atr: 0 · falt: 0</span>
-                    </div>
                 </div>
-                
+
                 <div id="listaEstudiantes" class="divide-y divide-gray-100">
                 </div>
+                <p id="sinResultadosBusqueda" class="hidden p-6 text-center text-gray-400 text-sm">
+                    <i class="fa-solid fa-user-slash text-xl mb-2 block text-gray-300"></i>No se encontró ningún alumno con ese nombre.
+                </p>
             </div>
 
         </main>
 
-        <!-- Botón Flotante para Guardar Datos -->
-        <div class="fixed bottom-0 left-0 right-0 p-4 barra-inferior-segura bg-white/95 backdrop-blur border-t border-gray-200 shadow-lg z-40">
-            <div class="max-w-md mx-auto flex gap-3">
-                <button onclick="guardarNotasMemoria()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md flex justify-center items-center gap-2 text-base active:scale-98 transition">
-                    <i class="fa-solid fa-floppy-disk"></i> Guardar / Actualizar Datos
+        <!-- Barra inferior compacta para guardar -->
+        <div class="fixed bottom-0 left-0 right-0 px-4 py-2.5 barra-inferior-segura bg-white/95 backdrop-blur border-t border-gray-200 shadow-lg z-40">
+            <div class="max-w-md mx-auto flex items-center justify-between gap-3">
+                <span id="indicadorGuardado" class="text-[10px] text-gray-400 font-semibold leading-tight">Sin cambios guardados aún</span>
+                <button onclick="guardarNotasMemoria()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md flex justify-center items-center gap-2 text-sm active:scale-95 transition flex-shrink-0">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar
                 </button>
             </div>
         </div>
@@ -357,6 +376,118 @@
             const cfg = estados[estado] || estados.local;
             badge.className = `text-[10px] font-bold px-2 py-1 rounded-lg transition-colors ${cfg.clase}`;
             badge.innerText = cfg.texto;
+        }
+
+        // Quita tildes/acentos y pasa a minúsculas, para que la búsqueda encuentre "jose" al escribir "José"
+        function normalizarTexto(txt) {
+            return String(txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        }
+
+        // Filtra la nómina visible en pantalla por nombre, sin recargar ni tocar los datos guardados
+        function filtrarNomina() {
+            const inputBusqueda = document.getElementById('inputBuscarAlumno');
+            const btnLimpiar = document.getElementById('btnLimpiarBusqueda');
+            if (!inputBusqueda) return;
+
+            const termino = normalizarTexto(inputBusqueda.value.trim());
+            if (btnLimpiar) btnLimpiar.classList.toggle('hidden', termino === '');
+
+            const filas = document.querySelectorAll('#listaEstudiantes .fila-alumno');
+            let visibles = 0;
+            filas.forEach(fila => {
+                const coincide = termino === '' || (fila.dataset.nombreBusqueda || '').includes(termino);
+                fila.classList.toggle('hidden', !coincide);
+                if (coincide) visibles++;
+            });
+
+            const sinResultados = document.getElementById('sinResultadosBusqueda');
+            if (sinResultados) {
+                sinResultados.classList.toggle('hidden', !(filas.length > 0 && visibles === 0));
+            }
+        }
+
+        function limpiarBusquedaAlumno() {
+            const inputBusqueda = document.getElementById('inputBuscarAlumno');
+            if (!inputBusqueda) return;
+            inputBusqueda.value = '';
+            filtrarNomina();
+            inputBusqueda.focus();
+        }
+
+        // Muestra/oculta el panel de configuración de clase y actualiza su resumen colapsado
+        let panelConfigExpandido = true;
+        function toggleConfigPanel(forzarExpandido) {
+            const detalle = document.getElementById('panelConfigDetalle');
+            const resumen = document.getElementById('panelConfigResumen');
+            const icono = document.getElementById('iconoTogglePanel');
+            const botonHeader = document.getElementById('botonTogglePanel');
+            if (!detalle || !resumen || !icono) return;
+
+            panelConfigExpandido = (typeof forzarExpandido === 'boolean') ? forzarExpandido : !panelConfigExpandido;
+
+            detalle.classList.toggle('hidden', !panelConfigExpandido);
+            resumen.classList.toggle('hidden', panelConfigExpandido);
+            icono.classList.toggle('fa-chevron-up', panelConfigExpandido);
+            icono.classList.toggle('fa-chevron-down', !panelConfigExpandido);
+            if (botonHeader) botonHeader.setAttribute('aria-expanded', String(panelConfigExpandido));
+
+            if (!panelConfigExpandido) actualizarResumenConfiguracion();
+        }
+
+        // Texto corto que se ve cuando el panel de configuración está colapsado
+        function actualizarResumenConfiguracion() {
+            const texto = document.getElementById('textoResumenConfig');
+            if (!texto) return;
+            const asig = document.getElementById('selectAsignatura')?.value || '—';
+            const paralelo = document.getElementById('selectParalelo')?.value || 'Sin paralelo';
+            const trimestre = document.getElementById('selectTrimestre')?.value || '—';
+            const insumoSelect = document.getElementById('selectInsumos');
+            const insumo = (insumoSelect && insumoSelect.value) ? insumoSelect.value : 'Sin insumo';
+            texto.innerHTML = `<b class="text-indigo-900">${escapeHtml(asig)}</b> · ${escapeHtml(paralelo)} · ${escapeHtml(trimestre)} · <span class="text-indigo-700">${escapeHtml(insumo)}</span>`;
+        }
+
+        // Pequeño texto junto al botón Guardar que confirma visualmente que ya se guardó
+        function actualizarIndicadorGuardado() {
+            const el = document.getElementById('indicadorGuardado');
+            if (!el) return;
+            const hora = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+            el.innerText = `Guardado · ${hora}`;
+        }
+
+        // Notificación con botón "Deshacer" para las acciones de eliminar (alumno, insumo, paralelo, asignatura)
+        function mostrarToastAccion(mensaje, textoBoton, accionDeshacer, duracion = 6000) {
+            const cont = document.getElementById('toast-container');
+            if (!cont) return;
+            const toast = document.createElement('div');
+            toast.className = 'bg-gray-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between gap-3 max-w-sm w-full pointer-events-auto transition-all duration-300 opacity-0 translate-y-2';
+
+            const span = document.createElement('span');
+            span.className = 'leading-snug';
+            span.innerText = mensaje;
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'text-amber-300 hover:text-amber-200 font-bold underline flex-shrink-0';
+            btn.innerText = textoBoton;
+
+            let usado = false;
+            btn.onclick = () => {
+                if (usado) return;
+                usado = true;
+                accionDeshacer();
+                toast.remove();
+            };
+
+            toast.appendChild(span);
+            toast.appendChild(btn);
+            cont.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('opacity-0', 'translate-y-2'));
+            setTimeout(() => {
+                if (!usado) {
+                    toast.classList.add('opacity-0');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, duracion);
         }
 
         const firebaseConfig = {
@@ -538,35 +669,66 @@
             if (!asig) return;
 
             if (confirm(`¿Estás seguro de eliminar la asignatura "${asig}"?\nEsta acción también eliminará sus insumos y calificaciones guardadas.`)) {
+                const listaAsigAntes = [...listaAsignaturas];
+                const paralelosAsigAntes = asignaturasParalelos[asig] ? [...asignaturasParalelos[asig]] : undefined;
+
                 listaAsignaturas = listaAsignaturas.filter(a => a !== asig);
                 delete asignaturasParalelos[asig];
-                limpiarDatosAsignatura(asig);
+                const borrados = limpiarDatosAsignatura(asig); // { insumosBorrados, notasBorradas }
                 guardarLS('listaAsignaturas', listaAsignaturas);
                 guardarLS('asignaturasParalelos', asignaturasParalelos);
                 renderizarSelectAsignaturas();
                 renderizarSelectInsumos();
                 cargarEstudiantesYNotas();
-                mostrarToast(`Asignatura "${asig}" eliminada.`, 'info');
+
+                mostrarToastAccion(`Asignatura "${asig}" eliminada.`, 'Deshacer', () => {
+                    listaAsignaturas = listaAsigAntes;
+                    if (paralelosAsigAntes) asignaturasParalelos[asig] = paralelosAsigAntes;
+                    Object.assign(listaInsumosPersonalizados, borrados.insumosBorrados);
+                    Object.assign(notasGuardadas, borrados.notasBorradas);
+                    guardarLS('listaAsignaturas', listaAsignaturas);
+                    guardarLS('asignaturasParalelos', asignaturasParalelos);
+                    guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+                    guardarLS('notasGuardadasDB', notasGuardadas);
+                    renderizarSelectAsignaturas();
+                    renderizarSelectInsumos();
+                    cargarEstudiantesYNotas();
+                    mostrarToast('Asignatura restaurada.', 'exito');
+                });
             }
         }
 
-        // Elimina insumos y notas huérfanas al borrar una asignatura completa
+        // Elimina insumos y notas huérfanas al borrar una asignatura completa.
+        // Devuelve lo que se borró, para poder restaurarlo si el usuario pulsa "Deshacer".
         function limpiarDatosAsignatura(asig) {
             const prefijo = `${asig}_`;
-            Object.keys(listaInsumosPersonalizados).forEach(k => { if (k.startsWith(prefijo)) delete listaInsumosPersonalizados[k]; });
-            Object.keys(notasGuardadas).forEach(k => { if (k.startsWith(prefijo)) delete notasGuardadas[k]; });
+            const insumosBorrados = {};
+            const notasBorradas = {};
+            Object.keys(listaInsumosPersonalizados).forEach(k => {
+                if (k.startsWith(prefijo)) { insumosBorrados[k] = listaInsumosPersonalizados[k]; delete listaInsumosPersonalizados[k]; }
+            });
+            Object.keys(notasGuardadas).forEach(k => {
+                if (k.startsWith(prefijo)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
+            });
             guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
             guardarLS('notasGuardadasDB', notasGuardadas);
+            return { insumosBorrados, notasBorradas };
         }
 
-        // Elimina insumos y notas huérfanas al quitar un paralelo de una asignatura
+        // Elimina insumos y notas huérfanas al quitar un paralelo de una asignatura.
+        // Devuelve lo que se borró, para poder restaurarlo si el usuario pulsa "Deshacer".
         function limpiarDatosParalelo(asig, paralelo) {
             const claveKey = `${asig}_${paralelo}`;
+            const insumosAntes = listaInsumosPersonalizados[claveKey];
             delete listaInsumosPersonalizados[claveKey];
             const prefijo = `${claveKey}_`;
-            Object.keys(notasGuardadas).forEach(k => { if (k.startsWith(prefijo)) delete notasGuardadas[k]; });
+            const notasBorradas = {};
+            Object.keys(notasGuardadas).forEach(k => {
+                if (k.startsWith(prefijo)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
+            });
             guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
             guardarLS('notasGuardadasDB', notasGuardadas);
+            return { insumosAntes, notasBorradas };
         }
 
         function alCambiarAsignatura() {
@@ -638,11 +800,25 @@
             if (!selectAsig || !selectParalelo) return;
 
             if (confirm(`¿Deseas quitar el paralelo "${selectParalelo}" de la asignatura "${selectAsig}"?\nSe eliminarán sus insumos y calificaciones para esta asignatura.`)) {
+                const paralelosAntes = [...asignaturasParalelos[selectAsig]];
+
                 asignaturasParalelos[selectAsig] = asignaturasParalelos[selectAsig].filter(p => p !== selectParalelo);
-                limpiarDatosParalelo(selectAsig, selectParalelo);
+                const borrados = limpiarDatosParalelo(selectAsig, selectParalelo); // { insumosAntes, notasBorradas }
                 guardarLS('asignaturasParalelos', asignaturasParalelos);
                 renderizarSelectParalelos();
-                mostrarToast(`Paralelo "${selectParalelo}" quitado de ${selectAsig}.`, 'info');
+
+                mostrarToastAccion(`Paralelo "${selectParalelo}" quitado de ${selectAsig}.`, 'Deshacer', () => {
+                    asignaturasParalelos[selectAsig] = paralelosAntes;
+                    if (borrados.insumosAntes !== undefined) {
+                        listaInsumosPersonalizados[`${selectAsig}_${selectParalelo}`] = borrados.insumosAntes;
+                    }
+                    Object.assign(notasGuardadas, borrados.notasBorradas);
+                    guardarLS('asignaturasParalelos', asignaturasParalelos);
+                    guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+                    guardarLS('notasGuardadasDB', notasGuardadas);
+                    renderizarSelectParalelos(selectParalelo);
+                    mostrarToast('Paralelo restaurado.', 'exito');
+                });
             }
         }
 
@@ -671,72 +847,42 @@
         }
 
         // --- LÓGICA DE INTERRUPTOR DE ASISTENCIA CORREGIDA ---
-        function cambiarEstadoAsistencia(estudiante) {
-            const idLimpio = idAlumno(estudiante);
-            const iconoVisto = document.getElementById(`visto_${idLimpio}`);
-            const iconoX = document.getElementById(`falta_x_${idLimpio}`);
-            const contenedorAsis = document.getElementById(`contenedor_asis_${idLimpio}`);
-
-            // Verificar si actualmente está marcado como asistido (visto verde visible)
-            const esAsistidoActual = !iconoVisto.classList.contains('hidden');
-
-            if (esAsistidoActual) {
-                // Cambiar a FALTA (Ocultar visto, mostrar X roja, poner fondo rojo suave)
-                iconoVisto.classList.add('hidden');
-                iconoX.classList.remove('hidden');
-                contenedorAsis.classList.remove('bg-emerald-50', 'border-emerald-200', 'hover:bg-emerald-100');
-                contenedorAsis.classList.add('falta-marcada', 'bg-red-50', 'border-red-300');
-            } else {
-                // Cambiar a ASISTENCIA (Mostrar visto verde, ocultar X roja, poner fondo verde suave)
-                iconoX.classList.add('hidden');
-                iconoVisto.classList.remove('hidden');
-                contenedorAsis.classList.remove('falta-marcada', 'bg-red-50', 'border-red-300');
-                contenedorAsis.classList.add('bg-emerald-50', 'border-emerald-200', 'hover:bg-emerald-100');
-            }
-            actualizarContadorAsistenciaPantalla();
+        // Devuelve el color, ícono y texto para cada estado de asistencia (A = asiste, ATR = atraso, F = falta)
+        function estadoAsistenciaInfo(estado) {
+            if (estado === 'F') return { clase: 'bg-red-50 border-red-300 text-rose-800', icono: 'fa-circle-xmark', texto: 'Falta' };
+            if (estado === 'ATR') return { clase: 'bg-amber-50 border-amber-300 text-amber-800', icono: 'fa-clock', texto: 'Atraso' };
+            return { clase: 'bg-emerald-50 border-emerald-200 text-emerald-800', icono: 'fa-circle-check', texto: 'Asiste' };
         }
 
-        function alternarAtraso(checkbox, estudiante) {
-            const idLimpio = idAlumno(estudiante);
-            const iconoVisto = document.getElementById(`visto_${idLimpio}`);
-            const iconoX = document.getElementById(`falta_x_${idLimpio}`);
-            const contenedorAsis = document.getElementById(`contenedor_asis_${idLimpio}`);
+        // Pinta el botón de asistencia con el estado indicado (usado al renderizar y al alternar)
+        function aplicarEstadoAsistencia(boton, estado, nombreSeguro) {
+            const info = estadoAsistenciaInfo(estado);
+            boton.dataset.estado = estado;
+            boton.className = `asistencia-control flex items-center gap-1 px-2.5 py-1.5 rounded-xl border transition flex-shrink-0 select-none font-bold text-[10px] hover:opacity-80 ${info.clase}`;
+            boton.setAttribute('aria-label', `Asistencia de ${nombreSeguro}: ${info.texto}. Toca para cambiar.`);
+            boton.innerHTML = `<i class="fa-solid ${info.icono}"></i> ${info.texto}`;
+        }
 
-            if (checkbox.checked) {
-                if (iconoVisto) iconoVisto.classList.add('hidden');
-                if (iconoX) iconoX.classList.add('hidden');
-                if (contenedorAsis) {
-                    contenedorAsis.classList.remove('falta-marcada', 'bg-red-50', 'border-red-300', 'bg-emerald-50', 'border-emerald-200');
-                    contenedorAsis.classList.add('bg-amber-50', 'border-amber-200');
-                }
-            } else {
-                if (iconoVisto) iconoVisto.classList.remove('hidden');
-                if (contenedorAsis) {
-                    contenedorAsis.classList.remove('bg-amber-50', 'border-amber-200', 'falta-marcada', 'bg-red-50', 'border-red-300');
-                    contenedorAsis.classList.add('bg-emerald-50', 'border-emerald-200', 'hover:bg-emerald-100');
-                }
-            }
+        // Un solo control de 3 estados (antes eran dos controles separados: interruptor + checkbox de atraso)
+        function ciclarAsistencia(nombreAttr) {
+            const idLimpio = idAlumno(nombreAttr);
+            const boton = document.getElementById(`estado_asis_${idLimpio}`);
+            if (!boton) return;
+            const actual = boton.dataset.estado || 'A';
+            const siguiente = actual === 'A' ? 'ATR' : (actual === 'ATR' ? 'F' : 'A');
+            aplicarEstadoAsistencia(boton, siguiente, nombreAttr.replace(/"/g, ''));
             actualizarContadorAsistenciaPantalla();
         }
 
         function actualizarContadorAsistenciaPantalla() {
-            const contenedoresAsis = document.querySelectorAll('.asistencia-interruptor-box');
+            const controles = document.querySelectorAll('.asistencia-control');
             let totalAsis = 0, totalAtraso = 0, totalFalt = 0;
 
-            contenedoresAsis.forEach((cont) => {
-                // Se busca el checkbox de atraso por su id (no por posición) para evitar
-                // desalineaciones si el orden de render cambiara en el futuro.
-                const idLimpio = cont.id.replace('contenedor_asis_', '');
-                const iconoVisto = document.getElementById(`visto_${idLimpio}`);
-                const atrasoCheck = document.getElementById(`atraso_${idLimpio}`);
-
-                if (atrasoCheck && atrasoCheck.checked) {
-                    totalAtraso++;
-                } else if (iconoVisto && !iconoVisto.classList.contains('hidden')) {
-                    totalAsis++;
-                } else {
-                    totalFalt++;
-                }
+            controles.forEach((boton) => {
+                const estado = boton.dataset.estado || 'A';
+                if (estado === 'ATR') totalAtraso++;
+                else if (estado === 'F') totalFalt++;
+                else totalAsis++;
             });
 
             const lblResumen = document.getElementById('resumenAsistenciaContador');
@@ -798,9 +944,17 @@
         function eliminarEstudiante(nombre) {
             const paralelo = document.getElementById('selectParalelo').value;
             if (confirm(`¿Deseas quitar a "${nombre}" de ${paralelo}?`)) {
+                const listaAntes = [...(estudiantesData[paralelo] || [])];
                 estudiantesData[paralelo] = estudiantesData[paralelo].filter(est => est !== nombre);
                 guardarLS('estudiantesData', estudiantesData);
                 cargarEstudiantesYNotas();
+
+                mostrarToastAccion(`Alumno "${nombre}" eliminado.`, 'Deshacer', () => {
+                    estudiantesData[paralelo] = listaAntes;
+                    guardarLS('estudiantesData', estudiantesData);
+                    cargarEstudiantesYNotas();
+                    mostrarToast('Alumno restaurado.', 'exito');
+                });
             }
         }
 
@@ -879,19 +1033,29 @@
 
             if (confirm(`¿Estás seguro de eliminar el insumo "${insumoBorrar}"?\nSe perderán las notas y asistencias registradas en él (en todos los trimestres).`)) {
                 const claveKey = `${asignatura}_${paralelo}`;
+                const listaAntes = [...listaInsumosPersonalizados[claveKey]];
                 listaInsumosPersonalizados[claveKey] = listaInsumosPersonalizados[claveKey].filter(i => i !== insumoBorrar);
                 guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
 
                 // Elimina las notas guardadas de este insumo en cualquier trimestre para no dejar datos huérfanos
                 const sufijo = `_${insumoBorrar}`;
                 const prefijoBase = `${asignatura}_${paralelo}_`;
+                const notasBorradas = {};
                 Object.keys(notasGuardadas).forEach(k => {
-                    if (k.startsWith(prefijoBase) && k.endsWith(sufijo)) delete notasGuardadas[k];
+                    if (k.startsWith(prefijoBase) && k.endsWith(sufijo)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
                 });
                 guardarLS('notasGuardadasDB', notasGuardadas);
 
                 renderizarSelectInsumos();
-                mostrarToast(`Insumo "${insumoBorrar}" eliminado.`, 'info');
+
+                mostrarToastAccion(`Insumo "${insumoBorrar}" eliminado.`, 'Deshacer', () => {
+                    listaInsumosPersonalizados[claveKey] = listaAntes;
+                    Object.assign(notasGuardadas, notasBorradas);
+                    guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+                    guardarLS('notasGuardadasDB', notasGuardadas);
+                    renderizarSelectInsumos(insumoBorrar);
+                    mostrarToast('Insumo restaurado.', 'exito');
+                });
             }
         }
 
@@ -1024,6 +1188,12 @@
             // al cambiar de asignatura/paralelo/trimestre/insumo sin pulsar Guardar).
             recolectarDatosFormulario(contextoRenderizado, false);
 
+            // Al cambiar de contexto se limpia cualquier búsqueda activa de la nómina anterior
+            const inputBusqueda = document.getElementById('inputBuscarAlumno');
+            if (inputBusqueda) inputBusqueda.value = '';
+            document.getElementById('btnLimpiarBusqueda')?.classList.add('hidden');
+            document.getElementById('sinResultadosBusqueda')?.classList.add('hidden');
+
             const asignatura = document.getElementById('selectAsignatura').value;
             const paralelo = document.getElementById('selectParalelo').value;
             const trimestre = document.getElementById('selectTrimestre').value;
@@ -1039,6 +1209,7 @@
                 contenedor.innerHTML = `<div class="p-8 text-center text-gray-400 text-sm"><i class="fa-solid fa-layer-group text-2xl mb-2 block text-gray-300"></i>Selecciona un paralelo para esta asignatura.</div>`;
                 document.getElementById('resumenAsistenciaContador').innerText = "asis: 0 · atr: 0 · falt: 0";
                 contextoRenderizado = { asignatura, paralelo: null, trimestre, insumo: null };
+                actualizarResumenConfiguracion();
                 return;
             }
 
@@ -1065,6 +1236,7 @@
                 `;
                 document.getElementById('resumenAsistenciaContador').innerText = "asis: 0 · atr: 0 · falt: 0";
                 contextoRenderizado = { asignatura, paralelo, trimestre, insumo: null };
+                actualizarResumenConfiguracion();
                 return;
             }
 
@@ -1078,6 +1250,7 @@
                 `;
                 document.getElementById('resumenAsistenciaContador').innerText = "asis: 0 · atr: 0 · falt: 0";
                 contextoRenderizado = { asignatura, paralelo, trimestre, insumo };
+                actualizarResumenConfiguracion();
                 return;
             }
 
@@ -1093,14 +1266,13 @@
                 const obsExistente = (datosDelInsumo.observaciones && datosDelInsumo.observaciones[nombre] !== undefined) ? datosDelInsumo.observaciones[nombre] : "";
                 const tieneEvidencia = (datosDelInsumo.evidencias && datosDelInsumo.evidencias[nombre] !== undefined);
 
-                const esFalta = (asisExistente === "F");
-                const esAtraso = (asisExistente === "ATR");
-                const esAsis = !esFalta && !esAtraso;
+                const infoEstado = estadoAsistenciaInfo(asisExistente);
                 const esNotaBaja = notaExistente !== "" && parseFloat(notaExistente) < 7;
                 const nombreAttr = nombreSeguro.replace(/"/g, '&quot;');
+                const nombreBusqueda = normalizarTexto(nombre);
 
                 return `
-                    <div class="p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none">
+                    <div class="fila-alumno p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none" data-nombre-busqueda="${nombreBusqueda}">
                         <div class="grid grid-cols-12 items-center gap-2">
 
                             <!-- Columna Izquierda: Número y Nombre del Estudiante -->
@@ -1109,7 +1281,7 @@
                                 <span class="text-xs font-bold text-gray-800 uppercase leading-snug break-words">${nombreSeguro}</span>
                             </button>
 
-                            <!-- Columna Derecha: Controles de Evidencia, Asistencia Interruptor, Nota y Borrar -->
+                            <!-- Columna Derecha: Controles de Evidencia, Asistencia, Nota y Borrar -->
                             <div class="col-span-7 flex items-center justify-end gap-1.5 flex-wrap">
 
                                 <!-- Botones de Evidencia -->
@@ -1124,17 +1296,10 @@
 
                                 <div class="flex items-center gap-1.5 overflow-x-auto py-1 scroll-sin-barra">
 
-                                    <!-- Casilla tipo interruptor: alterna entre Asistencia y Falta -->
-                                    <div id="contenedor_asis_${idLimpio}" role="button" tabindex="0" onclick="cambiarEstadoAsistencia('${nombreAttr}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();cambiarEstadoAsistencia('${nombreAttr}');}" class="asistencia-interruptor-box flex items-center gap-1 cursor-pointer px-2 py-1.5 rounded-xl border transition flex-shrink-0 select-none ${esFalta ? 'falta-marcada bg-red-50 border-red-300' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'}" title="Alternar entre Asistencia y Falta" aria-label="Asistencia de ${nombreSeguro}: ${esFalta ? 'Falta' : 'Asiste'}">
-                                        <i id="visto_${idLimpio}" class="fa-solid fa-circle-check text-emerald-600 text-base ${esAsis ? '' : 'hidden'}"></i>
-                                        <i id="falta_x_${idLimpio}" class="fa-solid fa-circle-xmark text-rose-600 text-base ${esFalta ? '' : 'hidden'}"></i>
-                                        <span class="text-[10px] font-bold ${esFalta ? 'text-rose-800' : 'text-emerald-800'}">Asis/Falta</span>
-                                    </div>
-
-                                    <label class="flex items-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-200 transition flex-shrink-0" title="Marcar Atraso">
-                                        <input type="checkbox" id="atraso_${idLimpio}" data-estudiante-atraso="${nombreAttr}" class="atraso-input h-3.5 w-3.5 text-amber-600 rounded focus:ring-amber-500" ${esAtraso ? 'checked' : ''} onchange="alternarAtraso(this, '${nombreAttr}')" aria-label="Marcar atraso de ${nombreSeguro}">
-                                        <span class="text-[10px] font-bold text-amber-800">Atr</span>
-                                    </label>
+                                    <!-- Control único de asistencia: un toque alterna Asiste → Atraso → Falta -->
+                                    <button type="button" id="estado_asis_${idLimpio}" data-estado="${asisExistente}" onclick="ciclarAsistencia('${nombreAttr}')" class="asistencia-control flex items-center gap-1 px-2.5 py-1.5 rounded-xl border transition flex-shrink-0 select-none font-bold text-[10px] hover:opacity-80 ${infoEstado.clase}" title="Toca para cambiar: Asiste → Atraso → Falta" aria-label="Asistencia de ${nombreSeguro}: ${infoEstado.texto}. Toca para cambiar.">
+                                        <i class="fa-solid ${infoEstado.icono}"></i> ${infoEstado.texto}
+                                    </button>
 
                                     <input type="number" step="0.01" min="0" max="10" placeholder="0.00" value="${notaExistente}" data-estudiante="${nombreAttr}" oninput="validarNotaInput(this)" class="nota-input w-14 bg-gray-50 border-2 border-indigo-200 focus:border-indigo-600 focus:bg-white text-gray-900 font-bold text-center text-sm rounded-xl py-1 px-1 focus:outline-none transition flex-shrink-0 ${esNotaBaja ? 'nota-baja' : ''}" aria-label="Nota de ${nombreSeguro}">
 
@@ -1156,6 +1321,7 @@
             contenedor.innerHTML = filas.join('');
             contextoRenderizado = { asignatura, paralelo, trimestre, insumo };
             actualizarContadorAsistenciaPantalla();
+            actualizarResumenConfiguracion();
         }
 
         // Lee los campos actualmente pintados en pantalla (notas, asistencia, atrasos,
@@ -1197,17 +1363,9 @@
             const lista = estudiantesData[paralelo] || [];
             lista.forEach(estudiante => {
                 const idLimpio = idAlumno(estudiante);
-                const checkAtraso = document.getElementById(`atraso_${idLimpio}`);
-                const iconoVisto = document.getElementById(`visto_${idLimpio}`);
-                if (!checkAtraso && !iconoVisto) return; // el alumno no está pintado en este formulario
-
-                if (checkAtraso && checkAtraso.checked) {
-                    notasGuardadas[claveDB].asistencia[estudiante] = "ATR";
-                } else if (iconoVisto && !iconoVisto.classList.contains('hidden')) {
-                    notasGuardadas[claveDB].asistencia[estudiante] = "A";
-                } else {
-                    notasGuardadas[claveDB].asistencia[estudiante] = "F";
-                }
+                const botonEstado = document.getElementById(`estado_asis_${idLimpio}`);
+                if (!botonEstado) return; // el alumno no está pintado en este formulario
+                notasGuardadas[claveDB].asistencia[estudiante] = botonEstado.dataset.estado || 'A';
             });
 
             document.querySelectorAll('.obs-input').forEach(input => {
@@ -1220,8 +1378,11 @@
                 }
             });
 
-            guardarLS('notasGuardadasDB', notasGuardadas);
-            return true;
+            const guardadoOk = guardarLS('notasGuardadasDB', notasGuardadas);
+            if (guardadoOk) {
+                actualizarIndicadorGuardado();
+            }
+            return guardadoOk;
         }
 
         function guardarNotasMemoria() {
