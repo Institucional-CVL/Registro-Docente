@@ -118,7 +118,7 @@
         <main class="max-w-md mx-auto p-4 space-y-4">
 
             <!-- Barra compacta de usuario + accesos rápidos (antes eran 2 tarjetas separadas) -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-3 flex items-center justify-between gap-2">
+            <div class="bg-white rounded-2xl shadow-sm border border-indigo-100 border-t-4 border-t-indigo-400 p-3 flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                     <i class="fa-solid fa-circle-user text-indigo-400 text-lg flex-shrink-0" aria-hidden="true"></i>
                     <span id="usuario-nombre" class="text-xs font-bold text-indigo-900 truncate"></span>
@@ -137,7 +137,7 @@
             </div>
 
             <!-- Configuración de clase: asignatura, paralelo, trimestre, fecha e insumo (unificados y colapsables) -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-blue-200 border-t-4 border-t-blue-500 overflow-hidden">
                 <button type="button" id="botonTogglePanel" onclick="toggleConfigPanel()" aria-expanded="true" aria-controls="panelConfigDetalle" class="w-full flex items-center justify-between gap-2 px-4 py-3 bg-blue-50/80 hover:bg-blue-100/70 transition text-left">
                     <span class="text-xs font-bold text-indigo-900 uppercase tracking-wide flex items-center gap-2">
                         <i class="fa-solid fa-sliders text-indigo-500"></i> Configuración de clase
@@ -220,7 +220,7 @@
             </div>
 
             <!-- Lista de Estudiantes -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 border-t-4 border-t-emerald-500 overflow-hidden">
                 <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-100 space-y-2.5">
                     <div class="flex justify-between items-center gap-2">
                         <div class="flex items-center gap-2 min-w-0">
@@ -245,7 +245,7 @@
                     </div>
                 </div>
 
-                <div id="listaEstudiantes" class="divide-y divide-gray-100">
+                <div id="listaEstudiantes" class="divide-y divide-emerald-50">
                 </div>
                 <p id="sinResultadosBusqueda" class="hidden p-6 text-center text-gray-400 text-sm">
                     <i class="fa-solid fa-user-slash text-xl mb-2 block text-gray-300"></i>No se encontró ningún alumno con ese nombre.
@@ -255,7 +255,7 @@
         </main>
 
         <!-- Barra inferior compacta para guardar -->
-        <div class="fixed bottom-0 left-0 right-0 px-4 py-2.5 barra-inferior-segura bg-white/95 backdrop-blur border-t border-gray-200 shadow-lg z-40">
+        <div class="fixed bottom-0 left-0 right-0 px-4 py-2.5 barra-inferior-segura bg-white/95 backdrop-blur border-t-2 border-indigo-200 shadow-lg z-40">
             <div class="max-w-md mx-auto flex items-center justify-between gap-3">
                 <span id="indicadorGuardado" class="text-[10px] text-gray-400 font-semibold leading-tight">Sin cambios guardados aún</span>
                 <button onclick="guardarNotasMemoria()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md flex justify-center items-center gap-2 text-sm active:scale-95 transition flex-shrink-0">
@@ -1272,7 +1272,7 @@
                 const nombreBusqueda = normalizarTexto(nombre);
 
                 return `
-                    <div class="fila-alumno p-3 space-y-2 hover:bg-indigo-50/40 transition border-b border-gray-100 last:border-none" data-nombre-busqueda="${nombreBusqueda}">
+                    <div class="fila-alumno p-3 space-y-2 hover:bg-emerald-50/40 transition border-b border-emerald-50 last:border-none" data-nombre-busqueda="${nombreBusqueda}">
                         <div class="grid grid-cols-12 items-center gap-2">
 
                             <!-- Columna Izquierda: Número y Nombre del Estudiante -->
