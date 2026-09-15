@@ -950,25 +950,57 @@
                     guardarLS('asignaturasParalelos', asignaturasParalelos);
                 }
 
-                // Si el paralelo es nuevo (no tenía modo de cálculo definido), se pregunta una sola vez.
+                // Si el paralelo es nuevo, se intenta reconocer el modo automáticamente
+                // a partir de su nombre (ej. "5to A" → Ponderado, "3ro B" → Simple).
+                // Solo si no se puede reconocer, se pregunta una vez, de forma simple.
                 if (modoCalculoParalelo[limpio] === undefined) {
-                    const esPonderado = confirm(
-                        `¿"${limpio}" es un paralelo de 5to a 10mo año (Educación General Básica Media/Superior)?\n\n` +
-                        `Aceptar = Sí → se calculará con ponderación 70% Insumos + 15% Proyecto + 15% Examen.\n` +
-                        `Cancelar = No, es de 2do a 4to año (Elemental) → promedio simple de insumos.`
-                    );
-                    modoCalculoParalelo[limpio] = esPonderado ? 'ponderado' : 'simple';
-                    guardarLS('modoCalculoParalelo', modoCalculoParalelo);
+                    const modoDetectado = detectarModoPorNombreParalelo(limpio);
+                    if (modoDetectado) {
+                        modoCalculoParalelo[limpio] = modoDetectado;
+                        guardarLS('modoCalculoParalelo', modoCalculoParalelo);
+                        mostrarToast(
+                            `"${limpio}" → Modo ${modoDetectado === 'ponderado' ? 'Ponderado' : 'Simple'} (detectado automáticamente).`,
+                            'info', 4000
+                        );
+                    } else {
+                        const esPonderado = confirm(
+                            `No se pudo reconocer el nivel de "${limpio}" a partir del nombre.\n\n` +
+                            `Aceptar = Modo Ponderado\nCancelar = Modo Simple`
+                        );
+                        modoCalculoParalelo[limpio] = esPonderado ? 'ponderado' : 'simple';
+                        guardarLS('modoCalculoParalelo', modoCalculoParalelo);
+                    }
                 }
 
                 renderizarSelectParalelos(limpio);
             }
         }
 
+        // Intenta reconocer si un paralelo es Elemental (Simple) o Media/Superior (Ponderado)
+        // a partir de su nombre. Devuelve 'simple', 'ponderado', o null si no reconoce nada.
+        function detectarModoPorNombreParalelo(nombreParalelo) {
+            const texto = normalizarTexto(nombreParalelo);
+            const pistasPonderado = ['10mo', 'decimo', '9no', 'noveno', '8vo', 'octavo', '7mo', 'septimo', '6to', 'sexto', '5to', 'quinto'];
+            const pistasSimple = ['4to', 'cuarto', '3ro', '3ero', 'tercero', '2do', 'segundo'];
+
+            if (pistasPonderado.some(p => texto.includes(p))) return 'ponderado';
+            if (pistasSimple.some(p => texto.includes(p))) return 'simple';
+            return null;
+        }
+
         // Devuelve 'simple' o 'ponderado' para un paralelo. 'simple' es el valor por
         // defecto si nunca se configuró (para no romper paralelos ya existentes).
         function obtenerModoParalelo(paralelo) {
             return modoCalculoParalelo[paralelo] || 'simple';
+        }
+
+        // Reconoce automáticamente la categoría de un insumo por su nombre:
+        // si contiene "proyecto" o "examen" se clasifica así; cualquier otro nombre es Insumo regular.
+        function detectarCategoriaPorNombreInsumo(nombreInsumo) {
+            const texto = normalizarTexto(nombreInsumo);
+            if (texto.includes('examen')) return 'examen';
+            if (texto.includes('proyecto')) return 'proyecto';
+            return 'insumo';
         }
 
         function obtenerCategoriaInsumo(claveKey, insumo) {
@@ -986,8 +1018,8 @@
             }
             const modo = obtenerModoParalelo(paralelo);
             texto.innerHTML = (modo === 'ponderado')
-                ? `Modo: <b class="text-indigo-700">Ponderado 70/15/15</b> (5to-10mo)`
-                : `Modo: <b class="text-emerald-700">Simple</b> (2do-4to)`;
+                ? `Modo: <b class="text-indigo-700">Ponderado</b>`
+                : `Modo: <b class="text-emerald-700">Simple</b>`;
         }
 
         // Permite corregir el modo de un paralelo ya existente (por si se configuró mal al crearlo)
@@ -999,9 +1031,8 @@
             }
             const modoActual = obtenerModoParalelo(paralelo);
             const esPonderado = confirm(
-                `Paralelo "${paralelo}"\nModo actual: ${modoActual === 'ponderado' ? 'Ponderado 70/15/15' : 'Simple'}\n\n` +
-                `Aceptar = Ponderado 70/15/15 (5to a 10mo año)\n` +
-                `Cancelar = Simple (2do a 4to año)`
+                `Paralelo "${paralelo}"\nModo actual: ${modoActual === 'ponderado' ? 'Ponderado' : 'Simple'}\n\n` +
+                `Aceptar = Modo Ponderado\nCancelar = Modo Simple`
             );
             modoCalculoParalelo[paralelo] = esPonderado ? 'ponderado' : 'simple';
             guardarLS('modoCalculoParalelo', modoCalculoParalelo);
@@ -1106,9 +1137,19 @@
             const pProy = promedioArr(proyectos);
             const pExa = promedioArr(examenes);
             const completo = (pReg !== null && pProy !== null && pExa !== null);
-            const total = completo ? (pReg * 0.70) + (pProy * 0.15) + (pExa * 0.15) : null;
 
-            return { total, completo, modo, pReg, pProy, pExa };
+            // Promedio progresivo: se calcula con lo que ya esté registrado, repartiendo
+            // el 100% solo entre las categorías disponibles (por eso el número va cambiando
+            // a medida que se agregan Insumos/Proyecto/Examen, en vez de esperar a tener los 3).
+            let sumaPonderada = 0, sumaPesos = 0;
+            if (pReg !== null) { sumaPonderada += pReg * 0.70; sumaPesos += 0.70; }
+            if (pProy !== null) { sumaPonderada += pProy * 0.15; sumaPesos += 0.15; }
+            if (pExa !== null) { sumaPonderada += pExa * 0.15; sumaPesos += 0.15; }
+
+            const total = sumaPesos > 0 ? (sumaPonderada / sumaPesos) : null;
+            const parcial = (total !== null && !completo);
+
+            return { total, completo, parcial, modo, pReg, pProy, pExa };
         }
 
         // Muestra el desglose del promedio de un alumno al tocar el texto "Prom: X"
@@ -1131,18 +1172,30 @@
                 return;
             }
 
-            if (!info.completo) {
-                const faltan = [];
-                if (info.pReg === null) faltan.push('Insumos (70%)');
-                if (info.pProy === null) faltan.push('Proyecto (15%)');
-                if (info.pExa === null) faltan.push('Examen (15%)');
-                mostrarToast(`Promedio pendiente. Falta calificar: ${faltan.join(', ')}.`, 'info', 5000);
+            if (info.total === null) {
+                mostrarToast('Aún no hay notas registradas en ningún insumo, proyecto o examen.', 'info');
                 return;
             }
 
+            const partes = [];
+            if (info.pReg !== null) partes.push(`Insumos ${info.pReg.toFixed(2)} (70%)`);
+            if (info.pProy !== null) partes.push(`Proyecto ${info.pProy.toFixed(2)} (15%)`);
+            if (info.pExa !== null) partes.push(`Examen ${info.pExa.toFixed(2)} (15%)`);
+
+            if (info.completo) {
+                mostrarToast(`${partes.join(' + ')} = ${info.total.toFixed(2)}`, 'info', 6000);
+                return;
+            }
+
+            const faltan = [];
+            if (info.pReg === null) faltan.push('Insumos');
+            if (info.pProy === null) faltan.push('Proyecto');
+            if (info.pExa === null) faltan.push('Examen');
+
             mostrarToast(
-                `Insumos ${info.pReg.toFixed(2)} (70%) + Proyecto ${info.pProy.toFixed(2)} (15%) + Examen ${info.pExa.toFixed(2)} (15%) = ${info.total.toFixed(2)}`,
-                'info', 6000
+                `Promedio parcial con lo registrado hasta ahora: ${partes.join(' + ')} = ${info.total.toFixed(2)}. ` +
+                `Aún falta: ${faltan.join(', ')}. El valor final cambiará al completarse.`,
+                'info', 7000
             );
         }
 
@@ -1366,18 +1419,19 @@
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
                 }
 
-                // En paralelos "ponderados" (5to-10mo), se pregunta a qué categoría pertenece
-                // el insumo, para poder calcular después el 70% / 15% / 15%.
+                // En paralelos "ponderados", se reconoce automáticamente la categoría por el
+                // nombre del insumo (si contiene "proyecto" o "examen"); el resto es Insumo regular.
                 if (obtenerModoParalelo(paralelo) === 'ponderado') {
-                    let respuesta = prompt(
-                        `¿Qué tipo de insumo es "${limpio}"?\n\n1 = Insumo regular (parte del 70%)\n2 = Proyecto (15%)\n3 = Examen (15%)`,
-                        '1'
-                    );
-                    respuesta = (respuesta || '1').trim();
-                    const categoria = (respuesta === '2') ? 'proyecto' : (respuesta === '3') ? 'examen' : 'insumo';
+                    const categoria = detectarCategoriaPorNombreInsumo(limpio);
                     if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
                     categoriaInsumos[claveKey][limpio] = categoria;
                     guardarLS('categoriaInsumos', categoriaInsumos);
+                    if (categoria !== 'insumo') {
+                        mostrarToast(
+                            `"${limpio}" reconocido como ${categoria === 'proyecto' ? 'Proyecto (15%)' : 'Examen (15%)'}.`,
+                            'info', 3500
+                        );
+                    }
                 }
 
                 const claveDB = `${asignatura}_${paralelo}_${trimestre}_${limpio}`;
@@ -1677,11 +1731,15 @@
                 const promedioInfo = calcularPromedioAlumno(nombre, asignatura, paralelo, trimestre);
                 let textoPromedio = '—';
                 let claseProm = 'text-gray-400';
-                if (promedioInfo && promedioInfo.completo) {
-                    textoPromedio = promedioInfo.total.toFixed(2);
-                    claseProm = promedioInfo.total < 7 ? 'text-rose-600' : 'text-emerald-700';
-                } else if (promedioInfo && promedioInfo.modo === 'ponderado') {
-                    textoPromedio = 'Pend.';
+                if (promedioInfo && promedioInfo.total !== null) {
+                    if (promedioInfo.completo) {
+                        textoPromedio = promedioInfo.total.toFixed(2);
+                        claseProm = promedioInfo.total < 7 ? 'text-rose-600' : 'text-emerald-700';
+                    } else {
+                        // Promedio progresivo: aún faltan categorías por calificar, se marca con "~"
+                        textoPromedio = `~${promedioInfo.total.toFixed(2)}`;
+                        claseProm = 'text-blue-600';
+                    }
                 }
 
                 return `
@@ -1755,11 +1813,14 @@
 
                 const promedioInfo = calcularPromedioAlumno(nombre, asignatura, paralelo, trimestre);
                 let texto = '—', clase = 'text-gray-400';
-                if (promedioInfo && promedioInfo.completo) {
-                    texto = promedioInfo.total.toFixed(2);
-                    clase = promedioInfo.total < 7 ? 'text-rose-600' : 'text-emerald-700';
-                } else if (promedioInfo && promedioInfo.modo === 'ponderado') {
-                    texto = 'Pend.';
+                if (promedioInfo && promedioInfo.total !== null) {
+                    if (promedioInfo.completo) {
+                        texto = promedioInfo.total.toFixed(2);
+                        clase = promedioInfo.total < 7 ? 'text-rose-600' : 'text-emerald-700';
+                    } else {
+                        texto = `~${promedioInfo.total.toFixed(2)}`;
+                        clase = 'text-blue-600';
+                    }
                 }
                 span.className = `text-[9px] font-black ${clase} block mt-0.5 underline decoration-dotted cursor-pointer`;
                 span.innerText = `Prom: ${texto}`;
