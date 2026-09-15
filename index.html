@@ -711,11 +711,6 @@
                         guardarLS('categoriaInsumos', categoriaInsumos);
                     }
 
-                    // Los datos de la nube pueden venir en formato antiguo (insumos
-                    // compartidos entre trimestres) si aún no se ha guardado con la
-                    // versión nueva; se vuelve a migrar aquí para no perder nada de vista.
-                    migrarInsumosPorTrimestre();
-
                     renderizarSelectAsignaturas();
                     renderizarSelectParalelos();
                     renderizarSelectInsumos();
@@ -767,48 +762,6 @@
         // realmente pintado en pantalla, para poder guardarlo automáticamente si el
         // usuario cambia de selección sin pulsar "Guardar" (evita pérdida de datos).
         let contextoRenderizado = { asignatura: null, paralelo: null, trimestre: null, insumo: null };
-
-        // Migra datos guardados con el formato antiguo (insumos compartidos entre
-        // trimestres) al nuevo formato, donde cada trimestre tiene su propia lista de
-        // insumos independiente. Es segura de llamar varias veces: si ya está todo en
-        // formato nuevo, no hace nada. Se llama al cargar la página Y otra vez después
-        // de traer datos de la nube (que pueden pisar la migración local con datos viejos).
-        function migrarInsumosPorTrimestre() {
-            const TRIMESTRES = ['1er Trimestre', '2do Trimestre', '3er Trimestre'];
-            let huboCambios = false;
-
-            Object.keys(listaInsumosPersonalizados).forEach(claveVieja => {
-                // Si la clave ya termina en un trimestre reconocido, es formato nuevo: no se toca.
-                const yaEsNueva = TRIMESTRES.some(t => claveVieja.endsWith(`_${t}`));
-                if (yaEsNueva) return;
-
-                const insumosViejos = listaInsumosPersonalizados[claveVieja] || [];
-                const categoriasViejas = categoriaInsumos[claveVieja] || {};
-
-                // Se copia la misma lista a los 3 trimestres (así se ve exactamente igual
-                // que antes de la migración); de ahí en adelante cada trimestre es independiente.
-                TRIMESTRES.forEach(t => {
-                    const claveNueva = `${claveVieja}_${t}`;
-                    if (!listaInsumosPersonalizados[claveNueva]) {
-                        listaInsumosPersonalizados[claveNueva] = [...insumosViejos];
-                    }
-                    if (Object.keys(categoriasViejas).length > 0 && !categoriaInsumos[claveNueva]) {
-                        categoriaInsumos[claveNueva] = { ...categoriasViejas };
-                    }
-                });
-
-                delete listaInsumosPersonalizados[claveVieja];
-                delete categoriaInsumos[claveVieja];
-                huboCambios = true;
-            });
-
-            if (huboCambios) {
-                guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
-                guardarLS('categoriaInsumos', categoriaInsumos);
-            }
-            return huboCambios;
-        }
-        migrarInsumosPorTrimestre();
 
         function renderizarSelectAsignaturas(asigSeleccionada = null) {
             const select = document.getElementById('selectAsignatura');
@@ -918,27 +871,23 @@
             return { insumosBorrados, categoriasBorradas, notasBorradas };
         }
 
-        // Elimina insumos y notas huérfanas al quitar un paralelo de una asignatura
-        // (recorre los 3 trimestres, ya que cada uno tiene su propia lista de insumos).
+        // Elimina insumos y notas huérfanas al quitar un paralelo de una asignatura.
         // Devuelve lo que se borró, para poder restaurarlo si el usuario pulsa "Deshacer".
         function limpiarDatosParalelo(asig, paralelo) {
-            const prefijoClave = `${asig}_${paralelo}_`; // coincide con "Asig_Paralelo_1er Trimestre", etc.
-            const insumosBorrados = {};
-            const categoriasBorradas = {};
-            Object.keys(listaInsumosPersonalizados).forEach(k => {
-                if (k.startsWith(prefijoClave)) { insumosBorrados[k] = listaInsumosPersonalizados[k]; delete listaInsumosPersonalizados[k]; }
-            });
-            Object.keys(categoriaInsumos).forEach(k => {
-                if (k.startsWith(prefijoClave)) { categoriasBorradas[k] = categoriaInsumos[k]; delete categoriaInsumos[k]; }
-            });
+            const claveKey = `${asig}_${paralelo}`;
+            const insumosAntes = listaInsumosPersonalizados[claveKey];
+            const categoriasAntes = categoriaInsumos[claveKey];
+            delete listaInsumosPersonalizados[claveKey];
+            delete categoriaInsumos[claveKey];
+            const prefijo = `${claveKey}_`;
             const notasBorradas = {};
             Object.keys(notasGuardadas).forEach(k => {
-                if (k.startsWith(prefijoClave)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
+                if (k.startsWith(prefijo)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
             });
             guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
             guardarLS('categoriaInsumos', categoriaInsumos);
             guardarLS('notasGuardadasDB', notasGuardadas);
-            return { insumosBorrados, categoriasBorradas, notasBorradas };
+            return { insumosAntes, categoriasAntes, notasBorradas };
         }
 
         function alCambiarAsignatura() {
@@ -1039,14 +988,6 @@
             return null;
         }
 
-        // Clave única para la lista de insumos y sus categorías: ahora incluye el
-        // trimestre, para que cada trimestre tenga sus propios insumos independientes
-        // (antes se compartían entre trimestres, causando que borrar un insumo en un
-        // trimestre borrara también el de los otros).
-        function claveInsumos(asignatura, paralelo, trimestre) {
-            return `${asignatura}_${paralelo}_${trimestre}`;
-        }
-
         // Devuelve 'simple' o 'ponderado' para un paralelo. 'simple' es el valor por
         // defecto si nunca se configuró (para no romper paralelos ya existentes).
         function obtenerModoParalelo(paralelo) {
@@ -1109,7 +1050,6 @@
 
             const asignatura = document.getElementById('selectAsignatura').value;
             const paralelo = document.getElementById('selectParalelo').value;
-            const trimestre = document.getElementById('selectTrimestre').value;
             const insumo = document.getElementById('selectInsumos')?.value;
 
             if (!paralelo || !insumo || obtenerModoParalelo(paralelo) !== 'ponderado') {
@@ -1119,7 +1059,7 @@
             }
 
             btn.classList.remove('hidden');
-            const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+            const claveKey = `${asignatura}_${paralelo}`;
             const categoria = obtenerCategoriaInsumo(claveKey, insumo);
             const etiquetas = { insumo: 'Insumo regular (70%)', proyecto: 'Proyecto (15%)', examen: 'Examen (15%)' };
             texto.innerText = `Categoría actual de "${insumo}": ${etiquetas[categoria]}`;
@@ -1131,11 +1071,10 @@
         function editarCategoriaInsumoActual() {
             const asignatura = document.getElementById('selectAsignatura').value;
             const paralelo = document.getElementById('selectParalelo').value;
-            const trimestre = document.getElementById('selectTrimestre').value;
             const insumo = document.getElementById('selectInsumos').value;
             if (!paralelo || !insumo) return;
 
-            const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+            const claveKey = `${asignatura}_${paralelo}`;
             const categoriaActual = obtenerCategoriaInsumo(claveKey, insumo);
             const etiquetas = { insumo: 'Insumo regular', proyecto: 'Proyecto', examen: 'Examen' };
             const valorPorDefecto = categoriaActual === 'proyecto' ? '2' : categoriaActual === 'examen' ? '3' : '1';
@@ -1163,7 +1102,7 @@
         // Devuelve null si el paralelo no tiene insumos. En modo ponderado, "completo"
         // indica si ya hay al menos un insumo regular, un proyecto y un examen calificados.
         function calcularPromedioAlumno(estudiante, asignatura, paralelo, trimestre) {
-            const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+            const claveKey = `${asignatura}_${paralelo}`;
             const insumos = listaInsumosPersonalizados[claveKey] || [];
             if (insumos.length === 0) return null;
 
@@ -1275,8 +1214,12 @@
 
                 mostrarToastAccion(`Paralelo "${selectParalelo}" quitado de ${selectAsig}.`, 'Deshacer', () => {
                     asignaturasParalelos[selectAsig] = paralelosAntes;
-                    Object.assign(listaInsumosPersonalizados, borrados.insumosBorrados);
-                    Object.assign(categoriaInsumos, borrados.categoriasBorradas);
+                    if (borrados.insumosAntes !== undefined) {
+                        listaInsumosPersonalizados[`${selectAsig}_${selectParalelo}`] = borrados.insumosAntes;
+                    }
+                    if (borrados.categoriasAntes !== undefined) {
+                        categoriaInsumos[`${selectAsig}_${selectParalelo}`] = borrados.categoriasAntes;
+                    }
                     Object.assign(notasGuardadas, borrados.notasBorradas);
                     guardarLS('asignaturasParalelos', asignaturasParalelos);
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
@@ -1291,10 +1234,9 @@
         function obtenerInsumosParaleloActual() {
             const paralelo = document.getElementById('selectParalelo').value;
             const asignatura = document.getElementById('selectAsignatura').value;
-            const trimestre = document.getElementById('selectTrimestre').value;
             if (!paralelo || !asignatura) return [];
-
-            const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+            
+            const claveKey = `${asignatura}_${paralelo}`;
             if (!listaInsumosPersonalizados[claveKey]) {
                 listaInsumosPersonalizados[claveKey] = [];
             }
@@ -1465,10 +1407,10 @@
                 return;
             }
 
-            const nuevoInsumo = prompt(`Escribe el nombre del nuevo insumo o actividad para ${asignatura} - ${paralelo} (${trimestre}):`);
+            const nuevoInsumo = prompt(`Escribe el nombre del nuevo insumo o actividad para ${asignatura} - ${paralelo}:`);
             if (nuevoInsumo && nuevoInsumo.trim() !== "") {
                 const limpio = nuevoInsumo.trim();
-                const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+                const claveKey = `${asignatura}_${paralelo}`;
                 if (!listaInsumosPersonalizados[claveKey]) {
                     listaInsumosPersonalizados[claveKey] = [];
                 }
@@ -1505,7 +1447,6 @@
         function eliminarInsumoActual() {
             const paralelo = document.getElementById('selectParalelo').value;
             const asignatura = document.getElementById('selectAsignatura').value;
-            const trimestre = document.getElementById('selectTrimestre').value;
             const select = document.getElementById('selectInsumos');
             const insumoBorrar = select.value;
 
@@ -1514,11 +1455,11 @@
                 return;
             }
 
-            if (confirm(`¿Estás seguro de eliminar el insumo "${insumoBorrar}" de ${trimestre}?\nSolo afecta a este trimestre; los demás trimestres no se ven afectados.`)) {
-                const claveKey = claveInsumos(asignatura, paralelo, trimestre);
-                const listaAntes = [...(listaInsumosPersonalizados[claveKey] || [])];
+            if (confirm(`¿Estás seguro de eliminar el insumo "${insumoBorrar}"?\nSe perderán las notas y asistencias registradas en él (en todos los trimestres).`)) {
+                const claveKey = `${asignatura}_${paralelo}`;
+                const listaAntes = [...listaInsumosPersonalizados[claveKey]];
                 const categoriaAntes = categoriaInsumos[claveKey]?.[insumoBorrar];
-                listaInsumosPersonalizados[claveKey] = (listaInsumosPersonalizados[claveKey] || []).filter(i => i !== insumoBorrar);
+                listaInsumosPersonalizados[claveKey] = listaInsumosPersonalizados[claveKey].filter(i => i !== insumoBorrar);
                 guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
 
                 if (categoriaInsumos[claveKey]) {
@@ -1526,27 +1467,25 @@
                     guardarLS('categoriaInsumos', categoriaInsumos);
                 }
 
-                // Elimina las notas guardadas de este insumo, SOLO en este trimestre
-                // (los otros trimestres, aunque tengan un insumo con el mismo nombre, no se tocan).
-                const claveDB = `${asignatura}_${paralelo}_${trimestre}_${insumoBorrar}`;
-                const notaBorrada = notasGuardadas[claveDB];
-                if (notaBorrada) {
-                    delete notasGuardadas[claveDB];
-                    guardarLS('notasGuardadasDB', notasGuardadas);
-                }
+                // Elimina las notas guardadas de este insumo en cualquier trimestre para no dejar datos huérfanos
+                const sufijo = `_${insumoBorrar}`;
+                const prefijoBase = `${asignatura}_${paralelo}_`;
+                const notasBorradas = {};
+                Object.keys(notasGuardadas).forEach(k => {
+                    if (k.startsWith(prefijoBase) && k.endsWith(sufijo)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
+                });
+                guardarLS('notasGuardadasDB', notasGuardadas);
 
                 renderizarSelectInsumos();
 
-                mostrarToastAccion(`Insumo "${insumoBorrar}" eliminado de ${trimestre}.`, 'Deshacer', () => {
+                mostrarToastAccion(`Insumo "${insumoBorrar}" eliminado.`, 'Deshacer', () => {
                     listaInsumosPersonalizados[claveKey] = listaAntes;
                     if (categoriaAntes !== undefined) {
                         if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
                         categoriaInsumos[claveKey][insumoBorrar] = categoriaAntes;
                         guardarLS('categoriaInsumos', categoriaInsumos);
                     }
-                    if (notaBorrada) {
-                        notasGuardadas[claveDB] = notaBorrada;
-                    }
+                    Object.assign(notasGuardadas, notasBorradas);
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
                     guardarLS('notasGuardadasDB', notasGuardadas);
                     renderizarSelectInsumos(insumoBorrar);
@@ -2069,11 +2008,11 @@
                 return;
             }
 
-            const claveKey = claveInsumos(asignaturaSel, paraleloSel, trimestreSel);
+            const claveKey = `${asignaturaSel}_${paraleloSel}`;
             const listaInsumos = listaInsumosPersonalizados[claveKey] || [];
 
             if (listaInsumos.length === 0) {
-                mostrarToast("No has creado ningún insumo para esta asignatura, paralelo y trimestre.", 'error');
+                mostrarToast("No has creado ningún insumo para esta asignatura y paralelo.", 'error');
                 return;
             }
 
