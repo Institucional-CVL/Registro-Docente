@@ -711,6 +711,11 @@
                         guardarLS('categoriaInsumos', categoriaInsumos);
                     }
 
+                    // Los datos de la nube pueden venir en formato antiguo (insumos
+                    // compartidos entre trimestres) si aún no se ha guardado con la
+                    // versión nueva; se vuelve a migrar aquí para no perder nada de vista.
+                    migrarInsumosPorTrimestre();
+
                     renderizarSelectAsignaturas();
                     renderizarSelectParalelos();
                     renderizarSelectInsumos();
@@ -765,8 +770,10 @@
 
         // Migra datos guardados con el formato antiguo (insumos compartidos entre
         // trimestres) al nuevo formato, donde cada trimestre tiene su propia lista de
-        // insumos independiente. Se ejecuta una sola vez; si no hay nada que migrar, no hace nada.
-        (function migrarInsumosPorTrimestre() {
+        // insumos independiente. Es segura de llamar varias veces: si ya está todo en
+        // formato nuevo, no hace nada. Se llama al cargar la página Y otra vez después
+        // de traer datos de la nube (que pueden pisar la migración local con datos viejos).
+        function migrarInsumosPorTrimestre() {
             const TRIMESTRES = ['1er Trimestre', '2do Trimestre', '3er Trimestre'];
             let huboCambios = false;
 
@@ -799,7 +806,9 @@
                 guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
                 guardarLS('categoriaInsumos', categoriaInsumos);
             }
-        })();
+            return huboCambios;
+        }
+        migrarInsumosPorTrimestre();
 
         function renderizarSelectAsignaturas(asigSeleccionada = null) {
             const select = document.getElementById('selectAsignatura');
