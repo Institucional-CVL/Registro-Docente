@@ -7,20 +7,12 @@
 
     <!-- ===== Configuración PWA (permite "Instalar" la app en el celular) ===== -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#312e81">
     <!-- iPhone/Safari: hace que se abra a pantalla completa al añadirla a inicio -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Registro Docente">
     <link rel="apple-touch-icon" href="icon-512.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Firebase SDK Compat Core, Auth & Firestore -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
@@ -87,29 +79,60 @@
         }
         .splash-dot { animation: splashDot 1.1s ease-in-out infinite; }
 
-        #pantalla-splash { transition: opacity 0.5s ease; }
-        #pantalla-splash.splash-fade-out { opacity: 0; pointer-events: none; }
+        /* Pestañas de trimestre */
+        .trimestre-tab { background-color: #f9fafb; border-color: #e0e7ff; color: #4338ca; }
+        .trimestre-tab:hover { background-color: #eef2ff; }
+        .trimestre-tab.activa { background-color: #4f46e5; border-color: #4f46e5; color: #ffffff; box-shadow: 0 2px 6px rgba(79,70,229,0.35); }
+
+        /* ===== Pantalla de bienvenida: CSS propio, sin depender de Tailwind =====
+           Así se pinta correctamente al instante, sin esperar a que cargue ninguna librería externa. */
+        .splash-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(to bottom right, #312e81, #1e3a8a, #1e1b4b);
+            transition: opacity 0.5s ease;
+        }
+        .splash-overlay.splash-fade-out { opacity: 0; pointer-events: none; }
+        .splash-anillo-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+        .splash-anillo { position: absolute; width: 8rem; height: 8rem; border-radius: 9999px; border: 4px solid rgba(255,255,255,0.2); }
+        .splash-circulo-logo {
+            width: 6rem; height: 6rem; background: #ffffff; border-radius: 9999px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+            display: flex; align-items: center; justify-content: center;
+            padding: 0.5rem; overflow: hidden;
+        }
+        .splash-logo-img { max-height: 100%; max-width: 100%; object-fit: contain; }
+        .splash-icono-fallback { display: none; color: #4f46e5; font-size: 1.75rem; }
+        .splash-titulo {
+            margin-top: 1.5rem; color: #ffffff; font-weight: 900; font-size: 0.8rem;
+            letter-spacing: 0.12em; text-transform: uppercase; text-align: center;
+            padding: 0 1.5rem; line-height: 1.6;
+        }
+        .splash-subtitulo { color: #fcd34d; }
+        .splash-dots-wrap { margin-top: 1.25rem; display: flex; gap: 0.4rem; }
+        .splash-dot { width: 0.5rem; height: 0.5rem; background: rgba(255,255,255,0.7); border-radius: 9999px; }
     </style>
 </head>
 <body class="pb-32">
 
-    <!-- Pantalla de bienvenida animada: se ve mientras carga la app, en vez de saltar
-         directo y de golpe a la pantalla de inicio de sesión. -->
-    <div id="pantalla-splash" class="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-950">
-        <div class="relative flex items-center justify-center">
-            <div class="absolute w-32 h-32 rounded-full border-4 border-white/20 splash-pulso"></div>
-            <div class="w-24 h-24 bg-white rounded-full shadow-2xl flex items-center justify-center p-2 splash-logo-anim overflow-hidden">
-                <img src="logo.png" alt="Logo Institución" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <i class="fa-solid fa-graduation-cap text-indigo-600 text-3xl" style="display:none;" aria-hidden="true"></i>
+    <!-- Pantalla de bienvenida animada: usa solo CSS propio (arriba), por eso se ve
+         bien desde el primer instante sin esperar a que carguen Tailwind/Firebase/etc.,
+         que ahora se cargan justo después de esta pantalla. -->
+    <div id="pantalla-splash" class="splash-overlay">
+        <div class="splash-anillo-wrap">
+            <div class="splash-anillo splash-pulso"></div>
+            <div class="splash-circulo-logo splash-logo-anim">
+                <img src="logo.png" alt="Logo Institución" class="splash-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <i class="fa-solid fa-graduation-cap splash-icono-fallback" aria-hidden="true"></i>
             </div>
         </div>
-        <p class="mt-6 text-white font-black text-sm tracking-widest uppercase splash-texto-anim text-center px-6 leading-relaxed">
-            Unidad Educativa<br><span class="text-amber-300">Clemente Vallejo Larrea</span>
+        <p class="splash-titulo splash-texto-anim">
+            Unidad Educativa<br><span class="splash-subtitulo">Clemente Vallejo Larrea</span>
         </p>
-        <div class="mt-5 flex gap-1.5">
-            <span class="w-2 h-2 bg-white/70 rounded-full splash-dot" style="animation-delay:0s"></span>
-            <span class="w-2 h-2 bg-white/70 rounded-full splash-dot" style="animation-delay:0.15s"></span>
-            <span class="w-2 h-2 bg-white/70 rounded-full splash-dot" style="animation-delay:0.3s"></span>
+        <div class="splash-dots-wrap">
+            <span class="splash-dot" style="animation-delay:0s"></span>
+            <span class="splash-dot" style="animation-delay:0.15s"></span>
+            <span class="splash-dot" style="animation-delay:0.3s"></span>
         </div>
     </div>
 
@@ -133,6 +156,16 @@
         // la pantalla de bienvenida desaparece igual a los pocos segundos.
         setTimeout(window.ocultarSplash, 6000);
     </script>
+
+    <!-- Estas librerías se cargan AQUÍ (después de la pantalla de bienvenida) y no en
+         el <head>, para que el navegador pinte la pantalla de bienvenida de inmediato
+         en vez de esperar a que todas estas librerías terminen de descargarse primero. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <!-- PANTALLA DE INICIO DE SESIÓN MEJORADA -->
     <div id="pantalla-login" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop');">
@@ -253,23 +286,38 @@
                     <!-- Paralelo y Trimestre -->
                     <div class="space-y-2 pt-3 border-t border-blue-100">
                         <div class="flex items-center justify-between">
-                            <label class="block text-[11px] font-bold text-indigo-900 uppercase">Paralelo y trimestre</label>
+                            <label class="block text-[11px] font-bold text-indigo-900 uppercase">Paralelo</label>
                             <button type="button" onclick="crearNuevoParaleloAsignatura()" class="bg-indigo-600 text-white hover:bg-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition" aria-label="Agregar paralelo">
                                 <i class="fa-solid fa-plus"></i> Paralelo
                             </button>
                         </div>
-                        <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
+                        <div class="flex gap-2">
                             <select id="selectParalelo" onchange="alCambiarSeleccion()" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
                             </select>
-                            <select id="selectTrimestre" onchange="alCambiarSeleccion()" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
-                                <option value="1er Trimestre">1er Trim.</option>
-                                <option value="2do Trimestre">2do Trim.</option>
-                                <option value="3er Trimestre">3er Trim.</option>
-                            </select>
-                            <button type="button" onclick="eliminarParaleloActualAsignatura()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2.5 rounded-xl text-xs transition shadow-sm" title="Quitar este paralelo de esta asignatura" aria-label="Quitar paralelo">
+                            <button type="button" onclick="eliminarParaleloActualAsignatura()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-2.5 rounded-xl text-xs transition shadow-sm flex-shrink-0" title="Quitar este paralelo de esta asignatura" aria-label="Quitar paralelo">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
+
+                        <!-- Indicador y cambio del modo de cálculo (promedio simple vs. ponderado 70/15/15) -->
+                        <div class="flex items-center justify-between bg-white border border-indigo-100 rounded-xl px-2.5 py-2">
+                            <span id="textoModoParalelo" class="text-[10px] font-bold text-gray-500 leading-snug">Selecciona un paralelo</span>
+                            <button type="button" onclick="cambiarModoParaleloActual()" class="text-indigo-600 hover:text-indigo-800 font-bold text-[10px] underline flex-shrink-0">Cambiar</button>
+                        </div>
+
+                        <!-- Trimestre: pestañas en vez de lista desplegable -->
+                        <label class="block text-[11px] font-bold text-indigo-900 uppercase pt-1">Trimestre</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" data-trimestre="1er Trimestre" onclick="seleccionarTrimestre('1er Trimestre')" class="trimestre-tab px-2 py-2 rounded-xl text-xs font-bold border transition">1er</button>
+                            <button type="button" data-trimestre="2do Trimestre" onclick="seleccionarTrimestre('2do Trimestre')" class="trimestre-tab px-2 py-2 rounded-xl text-xs font-bold border transition">2do</button>
+                            <button type="button" data-trimestre="3er Trimestre" onclick="seleccionarTrimestre('3er Trimestre')" class="trimestre-tab px-2 py-2 rounded-xl text-xs font-bold border transition">3er</button>
+                        </div>
+                        <!-- Select oculto: mantiene el mismo id/valor que ya usa toda la app, para no romper nada -->
+                        <select id="selectTrimestre" onchange="alCambiarSeleccion()" class="hidden">
+                            <option value="1er Trimestre">1er Trim.</option>
+                            <option value="2do Trimestre">2do Trimestre</option>
+                            <option value="3er Trimestre">3er Trimestre</option>
+                        </select>
                     </div>
 
                     <!-- Fecha -->
@@ -287,10 +335,14 @@
                             <button type="button" onclick="agregarNuevoInsumo()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" aria-label="Agregar insumo">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
+                            <button type="button" id="btnEditarCategoriaInsumo" onclick="editarCategoriaInsumoActual()" class="hidden bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" title="Cambiar si este insumo es Insumo/Proyecto/Examen" aria-label="Editar categoría del insumo">
+                                <i class="fa-solid fa-tag"></i>
+                            </button>
                             <button type="button" onclick="eliminarInsumoActual()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" aria-label="Eliminar insumo">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
+                        <p id="textoCategoriaInsumoActual" class="hidden text-[10px] font-bold text-amber-700"></p>
                     </div>
 
                     <button type="button" onclick="toggleConfigPanel(false)" class="w-full text-center text-[11px] font-bold text-indigo-500 hover:text-indigo-700 pt-1">
@@ -650,6 +702,14 @@
                         notasGuardadas = data.notasGuardadasDB;
                         guardarLS('notasGuardadasDB', notasGuardadas);
                     }
+                    if (data.modoCalculoParalelo) {
+                        modoCalculoParalelo = data.modoCalculoParalelo;
+                        guardarLS('modoCalculoParalelo', modoCalculoParalelo);
+                    }
+                    if (data.categoriaInsumos) {
+                        categoriaInsumos = data.categoriaInsumos;
+                        guardarLS('categoriaInsumos', categoriaInsumos);
+                    }
 
                     renderizarSelectAsignaturas();
                     renderizarSelectParalelos();
@@ -692,6 +752,12 @@
         let estudiantesData = cargarLS('estudiantesData', {});
         let listaInsumosPersonalizados = cargarLS('listaInsumosPersonalizados', {});
         let notasGuardadas = cargarLS('notasGuardadasDB', {});
+        // Modo de cálculo por paralelo: 'simple' (Elemental 2do-4to) o 'ponderado' (Media/Superior 5to-10mo).
+        // Se guarda por paralelo (no por materia) porque el nivel depende del año/grado, no de la asignatura.
+        let modoCalculoParalelo = cargarLS('modoCalculoParalelo', {});
+        // Categoría de cada insumo cuando el paralelo es "ponderado": 'insumo' | 'proyecto' | 'examen'.
+        // Estructura: { "Asignatura_Paralelo": { "NombreInsumo": "proyecto" } }
+        let categoriaInsumos = cargarLS('categoriaInsumos', {});
         // Recuerda el último contexto (asignatura/paralelo/trimestre/insumo) que estaba
         // realmente pintado en pantalla, para poder guardarlo automáticamente si el
         // usuario cambia de selección sin pulsar "Guardar" (evita pérdida de datos).
@@ -768,10 +834,12 @@
                     listaAsignaturas = listaAsigAntes;
                     if (paralelosAsigAntes) asignaturasParalelos[asig] = paralelosAsigAntes;
                     Object.assign(listaInsumosPersonalizados, borrados.insumosBorrados);
+                    Object.assign(categoriaInsumos, borrados.categoriasBorradas);
                     Object.assign(notasGuardadas, borrados.notasBorradas);
                     guardarLS('listaAsignaturas', listaAsignaturas);
                     guardarLS('asignaturasParalelos', asignaturasParalelos);
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+                    guardarLS('categoriaInsumos', categoriaInsumos);
                     guardarLS('notasGuardadasDB', notasGuardadas);
                     renderizarSelectAsignaturas();
                     renderizarSelectInsumos();
@@ -786,16 +854,21 @@
         function limpiarDatosAsignatura(asig) {
             const prefijo = `${asig}_`;
             const insumosBorrados = {};
+            const categoriasBorradas = {};
             const notasBorradas = {};
             Object.keys(listaInsumosPersonalizados).forEach(k => {
                 if (k.startsWith(prefijo)) { insumosBorrados[k] = listaInsumosPersonalizados[k]; delete listaInsumosPersonalizados[k]; }
+            });
+            Object.keys(categoriaInsumos).forEach(k => {
+                if (k.startsWith(prefijo)) { categoriasBorradas[k] = categoriaInsumos[k]; delete categoriaInsumos[k]; }
             });
             Object.keys(notasGuardadas).forEach(k => {
                 if (k.startsWith(prefijo)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
             });
             guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+            guardarLS('categoriaInsumos', categoriaInsumos);
             guardarLS('notasGuardadasDB', notasGuardadas);
-            return { insumosBorrados, notasBorradas };
+            return { insumosBorrados, categoriasBorradas, notasBorradas };
         }
 
         // Elimina insumos y notas huérfanas al quitar un paralelo de una asignatura.
@@ -803,15 +876,18 @@
         function limpiarDatosParalelo(asig, paralelo) {
             const claveKey = `${asig}_${paralelo}`;
             const insumosAntes = listaInsumosPersonalizados[claveKey];
+            const categoriasAntes = categoriaInsumos[claveKey];
             delete listaInsumosPersonalizados[claveKey];
+            delete categoriaInsumos[claveKey];
             const prefijo = `${claveKey}_`;
             const notasBorradas = {};
             Object.keys(notasGuardadas).forEach(k => {
                 if (k.startsWith(prefijo)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
             });
             guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+            guardarLS('categoriaInsumos', categoriaInsumos);
             guardarLS('notasGuardadasDB', notasGuardadas);
-            return { insumosAntes, notasBorradas };
+            return { insumosAntes, categoriasAntes, notasBorradas };
         }
 
         function alCambiarAsignatura() {
@@ -873,8 +949,201 @@
                     asignaturasParalelos[selectAsig].push(limpio);
                     guardarLS('asignaturasParalelos', asignaturasParalelos);
                 }
+
+                // Si el paralelo es nuevo (no tenía modo de cálculo definido), se pregunta una sola vez.
+                if (modoCalculoParalelo[limpio] === undefined) {
+                    const esPonderado = confirm(
+                        `¿"${limpio}" es un paralelo de 5to a 10mo año (Educación General Básica Media/Superior)?\n\n` +
+                        `Aceptar = Sí → se calculará con ponderación 70% Insumos + 15% Proyecto + 15% Examen.\n` +
+                        `Cancelar = No, es de 2do a 4to año (Elemental) → promedio simple de insumos.`
+                    );
+                    modoCalculoParalelo[limpio] = esPonderado ? 'ponderado' : 'simple';
+                    guardarLS('modoCalculoParalelo', modoCalculoParalelo);
+                }
+
                 renderizarSelectParalelos(limpio);
             }
+        }
+
+        // Devuelve 'simple' o 'ponderado' para un paralelo. 'simple' es el valor por
+        // defecto si nunca se configuró (para no romper paralelos ya existentes).
+        function obtenerModoParalelo(paralelo) {
+            return modoCalculoParalelo[paralelo] || 'simple';
+        }
+
+        function obtenerCategoriaInsumo(claveKey, insumo) {
+            return (categoriaInsumos[claveKey] && categoriaInsumos[claveKey][insumo]) || 'insumo';
+        }
+
+        // Actualiza el texto "Modo: Simple / Ponderado" que se ve junto al paralelo seleccionado
+        function actualizarModoParaleloUI() {
+            const texto = document.getElementById('textoModoParalelo');
+            if (!texto) return;
+            const paralelo = document.getElementById('selectParalelo')?.value;
+            if (!paralelo) {
+                texto.innerText = 'Selecciona un paralelo';
+                return;
+            }
+            const modo = obtenerModoParalelo(paralelo);
+            texto.innerHTML = (modo === 'ponderado')
+                ? `Modo: <b class="text-indigo-700">Ponderado 70/15/15</b> (5to-10mo)`
+                : `Modo: <b class="text-emerald-700">Simple</b> (2do-4to)`;
+        }
+
+        // Permite corregir el modo de un paralelo ya existente (por si se configuró mal al crearlo)
+        function cambiarModoParaleloActual() {
+            const paralelo = document.getElementById('selectParalelo').value;
+            if (!paralelo) {
+                mostrarToast("Selecciona un paralelo primero.", 'error');
+                return;
+            }
+            const modoActual = obtenerModoParalelo(paralelo);
+            const esPonderado = confirm(
+                `Paralelo "${paralelo}"\nModo actual: ${modoActual === 'ponderado' ? 'Ponderado 70/15/15' : 'Simple'}\n\n` +
+                `Aceptar = Ponderado 70/15/15 (5to a 10mo año)\n` +
+                `Cancelar = Simple (2do a 4to año)`
+            );
+            modoCalculoParalelo[paralelo] = esPonderado ? 'ponderado' : 'simple';
+            guardarLS('modoCalculoParalelo', modoCalculoParalelo);
+            actualizarModoParaleloUI();
+            cargarEstudiantesYNotas();
+            mostrarToast(`Modo de "${paralelo}" actualizado.`, 'exito');
+        }
+
+        // Muestra/oculta el botón de "editar categoría" y el texto de categoría actual,
+        // según si el paralelo es ponderado y hay un insumo seleccionado.
+        function actualizarUICategoriaInsumo() {
+            const btn = document.getElementById('btnEditarCategoriaInsumo');
+            const texto = document.getElementById('textoCategoriaInsumoActual');
+            if (!btn || !texto) return;
+
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const insumo = document.getElementById('selectInsumos')?.value;
+
+            if (!paralelo || !insumo || obtenerModoParalelo(paralelo) !== 'ponderado') {
+                btn.classList.add('hidden');
+                texto.classList.add('hidden');
+                return;
+            }
+
+            btn.classList.remove('hidden');
+            const claveKey = `${asignatura}_${paralelo}`;
+            const categoria = obtenerCategoriaInsumo(claveKey, insumo);
+            const etiquetas = { insumo: 'Insumo regular (70%)', proyecto: 'Proyecto (15%)', examen: 'Examen (15%)' };
+            texto.innerText = `Categoría actual de "${insumo}": ${etiquetas[categoria]}`;
+            texto.classList.remove('hidden');
+        }
+
+        // Cambia la categoría de un insumo ya existente. Solo cambia esta etiqueta:
+        // NUNCA toca ni borra las notas guardadas, solo cómo se agrupan en el cálculo.
+        function editarCategoriaInsumoActual() {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const insumo = document.getElementById('selectInsumos').value;
+            if (!paralelo || !insumo) return;
+
+            const claveKey = `${asignatura}_${paralelo}`;
+            const categoriaActual = obtenerCategoriaInsumo(claveKey, insumo);
+            const etiquetas = { insumo: 'Insumo regular', proyecto: 'Proyecto', examen: 'Examen' };
+            const valorPorDefecto = categoriaActual === 'proyecto' ? '2' : categoriaActual === 'examen' ? '3' : '1';
+
+            let respuesta = prompt(
+                `Insumo: "${insumo}"\nCategoría actual: ${etiquetas[categoriaActual]}\n\n` +
+                `¿Cuál es la categoría correcta?\n1 = Insumo regular (70%)\n2 = Proyecto (15%)\n3 = Examen (15%)`,
+                valorPorDefecto
+            );
+            if (respuesta === null) return; // canceló, no cambia nada
+
+            respuesta = respuesta.trim();
+            const nuevaCategoria = (respuesta === '2') ? 'proyecto' : (respuesta === '3') ? 'examen' : 'insumo';
+
+            if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
+            categoriaInsumos[claveKey][insumo] = nuevaCategoria;
+            guardarLS('categoriaInsumos', categoriaInsumos);
+
+            actualizarUICategoriaInsumo();
+            actualizarPromediosPantalla();
+            mostrarToast(`"${insumo}" ahora es: ${etiquetas[nuevaCategoria]}. Las notas no cambiaron.`, 'exito', 4500);
+        }
+
+        // Calcula el promedio trimestral de un alumno, según el modo del paralelo.
+        // Devuelve null si el paralelo no tiene insumos. En modo ponderado, "completo"
+        // indica si ya hay al menos un insumo regular, un proyecto y un examen calificados.
+        function calcularPromedioAlumno(estudiante, asignatura, paralelo, trimestre) {
+            const claveKey = `${asignatura}_${paralelo}`;
+            const insumos = listaInsumosPersonalizados[claveKey] || [];
+            if (insumos.length === 0) return null;
+
+            const modo = obtenerModoParalelo(paralelo);
+            const promedioArr = (arr) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+            if (modo === 'simple') {
+                const notas = [];
+                insumos.forEach(ins => {
+                    const claveDB = `${asignatura}_${paralelo}_${trimestre}_${ins}`;
+                    const nota = notasGuardadas[claveDB]?.notas?.[estudiante];
+                    if (nota !== undefined && nota !== "") notas.push(parseFloat(nota));
+                });
+                const total = promedioArr(notas);
+                return { total, completo: total !== null, modo };
+            }
+
+            // Modo ponderado 70/15/15
+            const regulares = [], proyectos = [], examenes = [];
+            insumos.forEach(ins => {
+                const claveDB = `${asignatura}_${paralelo}_${trimestre}_${ins}`;
+                const nota = notasGuardadas[claveDB]?.notas?.[estudiante];
+                if (nota === undefined || nota === "") return;
+                const valor = parseFloat(nota);
+                const cat = obtenerCategoriaInsumo(claveKey, ins);
+                if (cat === 'proyecto') proyectos.push(valor);
+                else if (cat === 'examen') examenes.push(valor);
+                else regulares.push(valor);
+            });
+
+            const pReg = promedioArr(regulares);
+            const pProy = promedioArr(proyectos);
+            const pExa = promedioArr(examenes);
+            const completo = (pReg !== null && pProy !== null && pExa !== null);
+            const total = completo ? (pReg * 0.70) + (pProy * 0.15) + (pExa * 0.15) : null;
+
+            return { total, completo, modo, pReg, pProy, pExa };
+        }
+
+        // Muestra el desglose del promedio de un alumno al tocar el texto "Prom: X"
+        function mostrarDetallePromedio(nombreAttr) {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const info = calcularPromedioAlumno(nombreAttr, asignatura, paralelo, trimestre);
+
+            if (!info) {
+                mostrarToast('Aún no hay insumos registrados para calcular un promedio.', 'info');
+                return;
+            }
+
+            if (info.modo === 'simple') {
+                mostrarToast(
+                    info.completo ? `Promedio simple de insumos: ${info.total.toFixed(2)}` : 'Aún no hay notas registradas en ningún insumo.',
+                    'info', 4500
+                );
+                return;
+            }
+
+            if (!info.completo) {
+                const faltan = [];
+                if (info.pReg === null) faltan.push('Insumos (70%)');
+                if (info.pProy === null) faltan.push('Proyecto (15%)');
+                if (info.pExa === null) faltan.push('Examen (15%)');
+                mostrarToast(`Promedio pendiente. Falta calificar: ${faltan.join(', ')}.`, 'info', 5000);
+                return;
+            }
+
+            mostrarToast(
+                `Insumos ${info.pReg.toFixed(2)} (70%) + Proyecto ${info.pProy.toFixed(2)} (15%) + Examen ${info.pExa.toFixed(2)} (15%) = ${info.total.toFixed(2)}`,
+                'info', 6000
+            );
         }
 
         function eliminarParaleloActualAsignatura() {
@@ -895,9 +1164,13 @@
                     if (borrados.insumosAntes !== undefined) {
                         listaInsumosPersonalizados[`${selectAsig}_${selectParalelo}`] = borrados.insumosAntes;
                     }
+                    if (borrados.categoriasAntes !== undefined) {
+                        categoriaInsumos[`${selectAsig}_${selectParalelo}`] = borrados.categoriasAntes;
+                    }
                     Object.assign(notasGuardadas, borrados.notasBorradas);
                     guardarLS('asignaturasParalelos', asignaturasParalelos);
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+                    guardarLS('categoriaInsumos', categoriaInsumos);
                     guardarLS('notasGuardadasDB', notasGuardadas);
                     renderizarSelectParalelos(selectParalelo);
                     mostrarToast('Paralelo restaurado.', 'exito');
@@ -1093,6 +1366,20 @@
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
                 }
 
+                // En paralelos "ponderados" (5to-10mo), se pregunta a qué categoría pertenece
+                // el insumo, para poder calcular después el 70% / 15% / 15%.
+                if (obtenerModoParalelo(paralelo) === 'ponderado') {
+                    let respuesta = prompt(
+                        `¿Qué tipo de insumo es "${limpio}"?\n\n1 = Insumo regular (parte del 70%)\n2 = Proyecto (15%)\n3 = Examen (15%)`,
+                        '1'
+                    );
+                    respuesta = (respuesta || '1').trim();
+                    const categoria = (respuesta === '2') ? 'proyecto' : (respuesta === '3') ? 'examen' : 'insumo';
+                    if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
+                    categoriaInsumos[claveKey][limpio] = categoria;
+                    guardarLS('categoriaInsumos', categoriaInsumos);
+                }
+
                 const claveDB = `${asignatura}_${paralelo}_${trimestre}_${limpio}`;
                 if (!notasGuardadas[claveDB]) {
                     notasGuardadas[claveDB] = { fecha: obtenerFechaActualFormato(), notas: {}, asistencia: {}, observaciones: {}, evidencias: {} };
@@ -1117,8 +1404,14 @@
             if (confirm(`¿Estás seguro de eliminar el insumo "${insumoBorrar}"?\nSe perderán las notas y asistencias registradas en él (en todos los trimestres).`)) {
                 const claveKey = `${asignatura}_${paralelo}`;
                 const listaAntes = [...listaInsumosPersonalizados[claveKey]];
+                const categoriaAntes = categoriaInsumos[claveKey]?.[insumoBorrar];
                 listaInsumosPersonalizados[claveKey] = listaInsumosPersonalizados[claveKey].filter(i => i !== insumoBorrar);
                 guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+
+                if (categoriaInsumos[claveKey]) {
+                    delete categoriaInsumos[claveKey][insumoBorrar];
+                    guardarLS('categoriaInsumos', categoriaInsumos);
+                }
 
                 // Elimina las notas guardadas de este insumo en cualquier trimestre para no dejar datos huérfanos
                 const sufijo = `_${insumoBorrar}`;
@@ -1133,6 +1426,11 @@
 
                 mostrarToastAccion(`Insumo "${insumoBorrar}" eliminado.`, 'Deshacer', () => {
                     listaInsumosPersonalizados[claveKey] = listaAntes;
+                    if (categoriaAntes !== undefined) {
+                        if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
+                        categoriaInsumos[claveKey][insumoBorrar] = categoriaAntes;
+                        guardarLS('categoriaInsumos', categoriaInsumos);
+                    }
                     Object.assign(notasGuardadas, notasBorradas);
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
                     guardarLS('notasGuardadasDB', notasGuardadas);
@@ -1143,11 +1441,30 @@
         }
 
         function alCambiarInsumoSelect() {
+            actualizarUICategoriaInsumo();
             cargarEstudiantesYNotas();
         }
 
         function alCambiarSeleccion() {
+            actualizarPestanasTrimestre();
+            actualizarModoParaleloUI();
             renderizarSelectInsumos();
+        }
+
+        // Pestañas de trimestre: cambian el valor del <select> oculto (que sigue usando
+        // toda la app tal cual) y disparan el mismo flujo de siempre.
+        function seleccionarTrimestre(valor) {
+            const select = document.getElementById('selectTrimestre');
+            if (!select || select.value === valor) return;
+            select.value = valor;
+            alCambiarSeleccion();
+        }
+
+        function actualizarPestanasTrimestre() {
+            const valorActual = document.getElementById('selectTrimestre')?.value;
+            document.querySelectorAll('.trimestre-tab').forEach(btn => {
+                btn.classList.toggle('activa', btn.dataset.trimestre === valorActual);
+            });
         }
 
         function guardarFechaCambiada() {
@@ -1281,6 +1598,9 @@
             const paralelo = document.getElementById('selectParalelo').value;
             const trimestre = document.getElementById('selectTrimestre').value;
             const insumo = document.getElementById('selectInsumos').value;
+            actualizarModoParaleloUI();
+            actualizarPestanasTrimestre();
+            actualizarUICategoriaInsumo();
 
             const contenedor = document.getElementById('listaEstudiantes');
             let lista = estudiantesData[paralelo] || [];
@@ -1354,14 +1674,27 @@
                 const nombreAttr = nombreSeguro.replace(/"/g, '&quot;');
                 const nombreBusqueda = normalizarTexto(nombre);
 
+                const promedioInfo = calcularPromedioAlumno(nombre, asignatura, paralelo, trimestre);
+                let textoPromedio = '—';
+                let claseProm = 'text-gray-400';
+                if (promedioInfo && promedioInfo.completo) {
+                    textoPromedio = promedioInfo.total.toFixed(2);
+                    claseProm = promedioInfo.total < 7 ? 'text-rose-600' : 'text-emerald-700';
+                } else if (promedioInfo && promedioInfo.modo === 'ponderado') {
+                    textoPromedio = 'Pend.';
+                }
+
                 return `
                     <div class="fila-alumno p-3 space-y-2 hover:bg-emerald-50/40 transition border-b border-emerald-50 last:border-none" data-nombre-busqueda="${nombreBusqueda}">
                         <div class="grid grid-cols-12 items-center gap-2">
 
-                            <!-- Columna Izquierda: Número y Nombre del Estudiante -->
+                            <!-- Columna Izquierda: Número, Nombre y Promedio del Estudiante -->
                             <button type="button" class="col-span-5 flex items-center gap-2 min-w-0 cursor-pointer text-left" onclick="editarNombreEstudiante('${nombreAttr}')" title="Editar nombre" aria-label="Editar nombre de ${nombreSeguro}">
                                 <span class="w-6 h-6 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xs flex-shrink-0">${num}</span>
-                                <span class="text-xs font-bold text-gray-800 uppercase leading-snug break-words">${nombreSeguro}</span>
+                                <div class="min-w-0">
+                                    <span class="text-xs font-bold text-gray-800 uppercase leading-snug break-words block">${nombreSeguro}</span>
+                                    <span id="promedio_${idLimpio}" onclick="event.stopPropagation(); mostrarDetallePromedio('${nombreAttr}')" class="text-[9px] font-black ${claseProm} block mt-0.5 underline decoration-dotted cursor-pointer">Prom: ${textoPromedio}</span>
+                                </div>
                             </button>
 
                             <!-- Columna Derecha: Controles de Evidencia, Asistencia, Nota y Borrar -->
@@ -1405,6 +1738,32 @@
             contextoRenderizado = { asignatura, paralelo, trimestre, insumo };
             actualizarContadorAsistenciaPantalla();
             actualizarResumenConfiguracion();
+        }
+
+        // Recalcula y actualiza en pantalla solo los "Prom: X" de cada alumno, sin
+        // volver a dibujar toda la nómina (se usa justo después de guardar).
+        function actualizarPromediosPantalla() {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            if (!paralelo) return;
+
+            (estudiantesData[paralelo] || []).forEach(nombre => {
+                const idLimpio = idAlumno(nombre);
+                const span = document.getElementById(`promedio_${idLimpio}`);
+                if (!span) return;
+
+                const promedioInfo = calcularPromedioAlumno(nombre, asignatura, paralelo, trimestre);
+                let texto = '—', clase = 'text-gray-400';
+                if (promedioInfo && promedioInfo.completo) {
+                    texto = promedioInfo.total.toFixed(2);
+                    clase = promedioInfo.total < 7 ? 'text-rose-600' : 'text-emerald-700';
+                } else if (promedioInfo && promedioInfo.modo === 'ponderado') {
+                    texto = 'Pend.';
+                }
+                span.className = `text-[9px] font-black ${clase} block mt-0.5 underline decoration-dotted cursor-pointer`;
+                span.innerText = `Prom: ${texto}`;
+            });
         }
 
         // Lee los campos actualmente pintados en pantalla (notas, asistencia, atrasos,
@@ -1480,6 +1839,7 @@
             }
 
             recolectarDatosFormulario({ asignatura, paralelo, trimestre, insumo }, true);
+            actualizarPromediosPantalla();
 
             if (usuarioActual) {
                 actualizarEstadoSync('sincronizando');
@@ -1489,6 +1849,8 @@
                     estudiantesData: estudiantesData,
                     listaInsumosPersonalizados: listaInsumosPersonalizados,
                     notasGuardadasDB: notasGuardadas,
+                    modoCalculoParalelo: modoCalculoParalelo,
+                    categoriaInsumos: categoriaInsumos,
                     ultimaActualizacion: new Date().toLocaleString()
                 }, { merge: true })
                 .then(() => {
@@ -1670,8 +2032,6 @@
 
             listaEstudiantes.forEach((estudiante, idx) => {
                 let filaEstudiante = [idx + 1, estudiante];
-                let sumaNotas = 0;
-                let conteoNotas = 0;
                 let observacionesAcumuladas = [];
 
                 listaInsumos.forEach(ins => {
@@ -1681,20 +2041,17 @@
                     const nota = (datosInsumo.notas && datosInsumo.notas[estudiante] !== undefined) ? datosInsumo.notas[estudiante] : "";
                     const obs = (datosInsumo.observaciones && datosInsumo.observaciones[estudiante] !== undefined) ? datosInsumo.observaciones[estudiante] : "";
 
-                    if (nota !== "") {
-                        sumaNotas += parseFloat(nota);
-                        conteoNotas++;
-                        filaEstudiante.push(parseFloat(nota));
-                    } else {
-                        filaEstudiante.push("");
-                    }
+                    filaEstudiante.push(nota !== "" ? parseFloat(nota) : "");
 
                     if (obs !== "") {
                         observacionesAcumuladas.push(`${ins}: ${obs}`);
                     }
                 });
 
-                const promedioVal = conteoNotas > 0 ? (sumaNotas / conteoNotas).toFixed(2) : "";
+                // Mismo cálculo que se ve en pantalla: promedio simple (Elemental) o
+                // ponderado 70/15/15 (Media/Superior), según el modo del paralelo.
+                const promedioInfo = calcularPromedioAlumno(estudiante, asignaturaSel, paraleloSel, trimestreSel);
+                const promedioVal = (promedioInfo && promedioInfo.completo) ? promedioInfo.total.toFixed(2) : "";
                 filaEstudiante.push(promedioVal !== "" ? parseFloat(promedioVal) : "");
                 filaEstudiante.push(observacionesAcumuladas.join(" | "));
 
@@ -1829,6 +2186,8 @@
             renderizarSelectAsignaturas();
             renderizarSelectParalelos();
             renderizarSelectInsumos();
+            actualizarPestanasTrimestre();
+            actualizarModoParaleloUI();
             cargarEstudiantesYNotas();
 
             // Registra el service worker para que la app sea instalable (PWA).
