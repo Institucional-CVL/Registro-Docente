@@ -1449,7 +1449,9 @@
                 const limpio = nuevoInsumo.trim();
                 const claveKey = claveInsumos(asignatura, paralelo, trimestre);
                 if (!listaInsumosPersonalizados[claveKey]) {
-                    listaInsumosPersonalizados[claveKey] = [];
+                    // Este trimestre pasa a tener su propia lista independiente, partiendo
+                    // de lo que ya se veía hasta ahora (nunca desde cero) para no perder nada.
+                    listaInsumosPersonalizados[claveKey] = [...obtenerListaInsumos(asignatura, paralelo, trimestre)];
                 }
                 if (!listaInsumosPersonalizados[claveKey].includes(limpio)) {
                     listaInsumosPersonalizados[claveKey].push(limpio);
@@ -1495,25 +1497,23 @@
 
             if (confirm(`¿Estás seguro de eliminar el insumo "${insumoBorrar}" de ${trimestre}?\nSolo afecta a este trimestre; los demás trimestres no se ven afectados.`)) {
                 const claveNueva = claveInsumos(asignatura, paralelo, trimestre);
-                const claveVieja = `${asignatura}_${paralelo}`;
 
-                // El insumo puede estar en el formato nuevo (por trimestre) o, si todavía
-                // no se migró, en el formato viejo (compartido) — se revisan ambos.
-                const listaAntesNueva = listaInsumosPersonalizados[claveNueva] ? [...listaInsumosPersonalizados[claveNueva]] : null;
-                const listaAntesVieja = listaInsumosPersonalizados[claveVieja] ? [...listaInsumosPersonalizados[claveVieja]] : null;
-                const categoriaAntesNueva = categoriaInsumos[claveNueva]?.[insumoBorrar];
-                const categoriaAntesVieja = categoriaInsumos[claveVieja]?.[insumoBorrar];
+                // Importante: NUNCA se toca la clave vieja compartida aquí (esa era la causa
+                // de que borrar en un trimestre afectara a los demás). Si este trimestre
+                // todavía no tiene su propia lista, se "gradúa" primero copiando lo que se
+                // veía hasta ahora (heredado del formato viejo), y de ahí en adelante esa
+                // copia queda totalmente separada de los otros trimestres.
+                if (!listaInsumosPersonalizados[claveNueva]) {
+                    listaInsumosPersonalizados[claveNueva] = [...obtenerListaInsumos(asignatura, paralelo, trimestre)];
+                }
 
-                if (listaInsumosPersonalizados[claveNueva]) {
-                    listaInsumosPersonalizados[claveNueva] = listaInsumosPersonalizados[claveNueva].filter(i => i !== insumoBorrar);
-                }
-                if (listaInsumosPersonalizados[claveVieja]) {
-                    listaInsumosPersonalizados[claveVieja] = listaInsumosPersonalizados[claveVieja].filter(i => i !== insumoBorrar);
-                }
+                const listaAntes = [...listaInsumosPersonalizados[claveNueva]];
+                const categoriaAntes = obtenerCategoriaInsumo(claveNueva, insumoBorrar);
+
+                listaInsumosPersonalizados[claveNueva] = listaInsumosPersonalizados[claveNueva].filter(i => i !== insumoBorrar);
                 guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
 
                 if (categoriaInsumos[claveNueva]) delete categoriaInsumos[claveNueva][insumoBorrar];
-                if (categoriaInsumos[claveVieja]) delete categoriaInsumos[claveVieja][insumoBorrar];
                 guardarLS('categoriaInsumos', categoriaInsumos);
 
                 // Elimina la nota SOLO de este trimestre (clave exacta); nunca toca otros trimestres.
@@ -1527,15 +1527,10 @@
                 renderizarSelectInsumos();
 
                 mostrarToastAccion(`Insumo "${insumoBorrar}" eliminado de ${trimestre}.`, 'Deshacer', () => {
-                    if (listaAntesNueva !== null) listaInsumosPersonalizados[claveNueva] = listaAntesNueva;
-                    if (listaAntesVieja !== null) listaInsumosPersonalizados[claveVieja] = listaAntesVieja;
-                    if (categoriaAntesNueva !== undefined) {
+                    listaInsumosPersonalizados[claveNueva] = listaAntes;
+                    if (categoriaAntes !== 'insumo') {
                         if (!categoriaInsumos[claveNueva]) categoriaInsumos[claveNueva] = {};
-                        categoriaInsumos[claveNueva][insumoBorrar] = categoriaAntesNueva;
-                    }
-                    if (categoriaAntesVieja !== undefined) {
-                        if (!categoriaInsumos[claveVieja]) categoriaInsumos[claveVieja] = {};
-                        categoriaInsumos[claveVieja][insumoBorrar] = categoriaAntesVieja;
+                        categoriaInsumos[claveNueva][insumoBorrar] = categoriaAntes;
                     }
                     if (notaBorrada) notasGuardadas[claveDB] = notaBorrada;
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
