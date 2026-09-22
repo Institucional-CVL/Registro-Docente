@@ -220,9 +220,14 @@
                         </span>
                     </div>
                 </div>
-                <button onclick="descargarExcel()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1 active:scale-95 transition">
-                    <i class="fa-solid fa-file-excel text-sm"></i> Exportar Excel
-                </button>
+                <div class="flex flex-col gap-1.5 flex-shrink-0">
+                    <button onclick="descargarExcel()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1 active:scale-95 transition" title="Exporta el insumo actual, incluye observaciones">
+                        <i class="fa-solid fa-file-excel text-sm"></i> Exportar Excel
+                    </button>
+                    <button onclick="descargarReporteTrimestralCompleto()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1 active:scale-95 transition" title="Genera el reporte institucional de los 3 trimestres + cuadro final anual">
+                        <i class="fa-solid fa-file-shield text-sm"></i> Reporte Trimestral
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -2290,6 +2295,335 @@
             } catch (err) {
                 console.error("Error al generar el Excel:", err);
                 mostrarToast("No se pudo generar el archivo Excel. Intenta nuevamente.", 'error', 5000);
+            }
+        }
+
+        // ===================================================================
+        // REPORTE TRIMESTRAL COMPLETO (formato institucional): genera 4 hojas
+        // (1er, 2do, 3er trimestre + Cuadro Final anual) con fórmulas en vivo,
+        // igual que la plantilla oficial, pero calculado automáticamente por
+        // la app y con tantas columnas de insumos como existan cada trimestre.
+        // ===================================================================
+
+        // Traduce "5to A" -> QUINTO "A". Si no reconoce el grado, usa el texto tal cual.
+        function formatearCursoParaReporte(paralelo) {
+            const texto = normalizarTexto(paralelo);
+            const mapa = [
+                ['10mo', 'DÉCIMO'], ['decimo', 'DÉCIMO'],
+                ['9no', 'NOVENO'], ['noveno', 'NOVENO'],
+                ['8vo', 'OCTAVO'], ['octavo', 'OCTAVO'],
+                ['7mo', 'SÉPTIMO'], ['septimo', 'SÉPTIMO'],
+                ['6to', 'SEXTO'], ['sexto', 'SEXTO'],
+                ['5to', 'QUINTO'], ['quinto', 'QUINTO'],
+                ['4to', 'CUARTO'], ['cuarto', 'CUARTO'],
+                ['3ro', 'TERCERO'], ['3ero', 'TERCERO'], ['tercero', 'TERCERO'],
+                ['2do', 'SEGUNDO'], ['segundo', 'SEGUNDO']
+            ];
+            for (const [clave, nombre] of mapa) {
+                if (texto.includes(clave)) {
+                    const match = paralelo.trim().match(/([A-Za-z])\s*$/);
+                    const letra = match ? match[1].toUpperCase() : '';
+                    return letra ? `${nombre} "${letra}"` : nombre;
+                }
+            }
+            return paralelo.toUpperCase();
+        }
+
+        // Fórmula de Excel (sin el "=" inicial) que traduce una nota numérica a su letra
+        // cualitativa (A+, A-, B+... NE), idéntica a la de la plantilla original.
+        function formulaLetraCualitativa(ref) {
+            return `IF(OR(${ref}="NE",${ref}=""),"NE",IF(ISNUMBER(${ref}),IF(${ref}>=9.5,"A+",IF(${ref}>=8.5,"A-",IF(${ref}>=7.5,"B+",IF(${ref}>=6.5,"B-",IF(INT(${ref})=6,"C+",IF(INT(${ref})=5,"C-",IF(INT(${ref})=4,"D+",IF(INT(${ref})=3,"D-",IF(INT(${ref})=2,"E+",IF(INT(${ref})=1,"E-","NE"))))))))))))`;
+        }
+
+        // Pide una sola vez (y recuerda) los datos institucionales que la app no registra
+        // por sí sola (año lectivo, jornada). El nombre del docente se toma de la cuenta de Google.
+        function obtenerConfigReporteInstitucional() {
+            let config = cargarLS('configReporteInstitucional', null);
+            if (!config) config = { anioLectivo: '', jornada: '' };
+
+            if (!config.anioLectivo) {
+                const hoy = new Date();
+                const sugerido = hoy.getMonth() >= 7 ? `${hoy.getFullYear()}-${hoy.getFullYear() + 1}` : `${hoy.getFullYear() - 1}-${hoy.getFullYear()}`;
+                const respuesta = prompt('¿Cuál es el año lectivo? (Ej: 2025-2026)', sugerido);
+                config.anioLectivo = (respuesta && respuesta.trim()) ? respuesta.trim() : sugerido;
+            }
+            if (!config.jornada) {
+                const respuesta = prompt('¿Cuál es la jornada? (Ej: MATUTINA, VESPERTINA)', 'MATUTINA');
+                config.jornada = (respuesta && respuesta.trim()) ? respuesta.trim().toUpperCase() : 'MATUTINA';
+            }
+            guardarLS('configReporteInstitucional', config);
+            return config;
+        }
+
+        function descargarReporteTrimestralCompleto() {
+            recolectarDatosFormulario(contextoRenderizado, false);
+
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const instNombre = document.getElementById('tituloInstitucion').innerText.trim();
+
+            if (!asignatura || !paralelo) {
+                mostrarToast("Selecciona una asignatura y un paralelo.", 'error');
+                return;
+            }
+
+            let listaEstudiantes = ordenarNomina(estudiantesData[paralelo] || []);
+            if (listaEstudiantes.length === 0) {
+                mostrarToast("No hay estudiantes para exportar.", 'error');
+                return;
+            }
+
+            const config = obtenerConfigReporteInstitucional();
+            const cursoFormateado = formatearCursoParaReporte(paralelo);
+            const docente = (usuarioActual && usuarioActual.displayName) ? usuarioActual.displayName.toUpperCase() : '';
+
+            // Estilos (mismos que ya usa "Exportar Excel", para que se vea consistente)
+            const estiloTituloPrincipal = { font: { name: "Arial", sz: 14, bold: true, color: { rgb: "1E1B4B" } }, alignment: { horizontal: "center", vertical: "center" } };
+            const estiloSubTitulo = { font: { name: "Arial", sz: 11, bold: true, color: { rgb: "4338CA" } }, alignment: { horizontal: "center", vertical: "center" } };
+            const estiloEtiqueta = { font: { name: "Arial", sz: 10, bold: true, color: { rgb: "374151" } }, alignment: { horizontal: "left", vertical: "center" } };
+            const estiloCabeceraTabla = {
+                fill: { fgColor: { rgb: "4F46E5" } }, font: { name: "Arial", sz: 10, bold: true, color: { rgb: "FFFFFF" } },
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                border: { top: { style: "thin", color: { rgb: "312E81" } }, bottom: { style: "thin", color: { rgb: "312E81" } }, left: { style: "thin", color: { rgb: "312E81" } }, right: { style: "thin", color: { rgb: "312E81" } } }
+            };
+            const estiloCeldaDatos = {
+                font: { name: "Arial", sz: 10, color: { rgb: "1F2937" } }, alignment: { vertical: "center" },
+                border: { top: { style: "thin", color: { rgb: "E5E7EB" } }, bottom: { style: "thin", color: { rgb: "E5E7EB" } }, left: { style: "thin", color: { rgb: "E5E7EB" } }, right: { style: "thin", color: { rgb: "E5E7EB" } } }
+            };
+            const estiloCeldaCentrada = { ...estiloCeldaDatos, alignment: { horizontal: "center", vertical: "center" } };
+            const estiloTotales = { ...estiloCeldaCentrada, font: { name: "Arial", sz: 10, bold: true, color: { rgb: "1E1B4B" } }, fill: { fgColor: { rgb: "E0E7FF" } } };
+
+            const NOMBRES_TRIMESTRE = ['1er Trimestre', '2do Trimestre', '3er Trimestre'];
+            const TITULOS_TRIMESTRE = ['PRIMER TRIMESTRE', 'SEGUNDO TRIMESTRE', 'TERCER TRIMESTRE'];
+            const NOMBRES_HOJA = ['T1', 'T2', 'T3'];
+
+            try {
+                const wb = XLSX.utils.book_new();
+                const promediosPorTrimestre = []; // guarda, por alumno, el promedio de cada trimestre (para el Cuadro Final)
+
+                NOMBRES_TRIMESTRE.forEach((trimestre, idxTrim) => {
+                    const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+                    const todosLosInsumos = obtenerListaInsumos(asignatura, paralelo, trimestre);
+                    const esPonderado = obtenerModoParalelo(paralelo) === 'ponderado';
+
+                    // Separa insumos regulares (70%) de Proyecto/Examen (15%/15%)
+                    let insumosRegulares = todosLosInsumos;
+                    let nombreProyecto = null, nombreExamenes = [];
+                    if (esPonderado) {
+                        insumosRegulares = [];
+                        todosLosInsumos.forEach(ins => {
+                            const cat = obtenerCategoriaInsumo(claveKey, ins);
+                            if (cat === 'proyecto') nombreProyecto = ins;
+                            else if (cat === 'examen') nombreExamenes.push(ins);
+                            else insumosRegulares.push(ins);
+                        });
+                    }
+                    if (insumosRegulares.length === 0) insumosRegulares = ['Insumo 1']; // deja al menos 1 columna para no romper el layout
+
+                    const numInsumos = insumosRegulares.length;
+                    const colInsumoIni = 2; // C
+                    const colProm70 = colInsumoIni + numInsumos;
+                    const colProyecto = colProm70 + 1;
+                    const colExamen = colProm70 + 2;
+                    const colPromedio = colProm70 + 3;
+                    const colNotaFinal = colProm70 + 4;
+                    const totalCols = colNotaFinal + 1;
+                    const filaInicioAlumnos = 8; // fila 9 en Excel (índice 8) = primer alumno
+
+                    const ws = {};
+                    const merges = [];
+                    const setCell = (r, c, valor, opciones = {}) => {
+                        const ref = XLSX.utils.encode_cell({ r, c });
+                        const cell = {};
+                        if (opciones.formula) { cell.f = opciones.formula; cell.t = 'n'; }
+                        else { cell.v = valor; cell.t = (typeof valor === 'number') ? 'n' : 's'; }
+                        if (opciones.estilo) cell.s = opciones.estilo;
+                        ws[ref] = cell;
+                    };
+
+                    setCell(0, 0, instNombre, { estilo: estiloTituloPrincipal });
+                    merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } });
+                    setCell(1, 0, `REPORTE DE RENDIMIENTO ACADÉMICO ${TITULOS_TRIMESTRE[idxTrim]}`, { estilo: estiloSubTitulo });
+                    merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } });
+                    setCell(2, 0, `AÑO LECTIVO ${config.anioLectivo}`, { estilo: estiloSubTitulo });
+                    merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: totalCols - 1 } });
+
+                    setCell(3, 0, 'CURSO:', { estilo: estiloEtiqueta });
+                    setCell(3, 1, cursoFormateado, { estilo: estiloEtiqueta });
+                    setCell(3, 3, 'Jornada', { estilo: estiloEtiqueta });
+                    setCell(3, 4, config.jornada, { estilo: estiloEtiqueta });
+                    merges.push({ s: { r: 3, c: 4 }, e: { r: 3, c: 5 } });
+
+                    setCell(4, 0, 'ÁREA:', { estilo: estiloEtiqueta });
+                    setCell(4, 1, asignatura.toUpperCase(), { estilo: estiloEtiqueta });
+                    setCell(4, 3, 'Docente', { estilo: estiloEtiqueta });
+                    setCell(4, 4, docente, { estilo: estiloEtiqueta });
+                    merges.push({ s: { r: 4, c: 4 }, e: { r: 4, c: 5 } });
+
+                    setCell(5, 0, 'N°', { estilo: estiloCabeceraTabla });
+                    setCell(5, 1, 'N Ó M I N A', { estilo: estiloCabeceraTabla });
+                    setCell(5, 2, 'PERIODO ACADÉMICO', { estilo: estiloCabeceraTabla });
+                    merges.push({ s: { r: 5, c: 2 }, e: { r: 5, c: colPromedio } });
+                    setCell(5, colNotaFinal, 'NOTA FINAL', { estilo: estiloCabeceraTabla });
+                    merges.push({ s: { r: 5, c: colNotaFinal }, e: { r: 6, c: colNotaFinal } });
+
+                    insumosRegulares.forEach((nombreIns, i) => {
+                        setCell(6, colInsumoIni + i, nombreIns, { estilo: estiloCabeceraTabla });
+                    });
+                    setCell(6, colProm70, 'Prom insumos 70%', { estilo: estiloCabeceraTabla });
+                    setCell(6, colProyecto, 'SUMATIVA 30%', { estilo: estiloCabeceraTabla });
+                    merges.push({ s: { r: 6, c: colProyecto }, e: { r: 6, c: colExamen } });
+                    setCell(6, colPromedio, 'Promedio', { estilo: estiloCabeceraTabla });
+                    merges.push({ s: { r: 6, c: colPromedio }, e: { r: 7, c: colPromedio } });
+                    setCell(7, colProyecto, 'Proyecto', { estilo: estiloCabeceraTabla });
+                    setCell(7, colExamen, 'Examen', { estilo: estiloCabeceraTabla });
+
+                    const notaDeInsumoLetraDeCol = (col) => XLSX.utils.encode_col(col);
+
+                    listaEstudiantes.forEach((estudiante, idx) => {
+                        const filaExcel = filaInicioAlumnos + idx;
+                        const filaExcelNum = filaExcel + 1;
+
+                        setCell(filaExcel, 0, idx + 1, { estilo: estiloCeldaCentrada });
+                        setCell(filaExcel, 1, estudiante, { estilo: estiloCeldaDatos });
+
+                        insumosRegulares.forEach((nombreIns, i) => {
+                            const claveDB = `${asignatura}_${paralelo}_${trimestre}_${nombreIns}`;
+                            const nota = notasGuardadas[claveDB]?.notas?.[estudiante];
+                            setCell(filaExcel, colInsumoIni + i, (nota !== undefined && nota !== "") ? parseFloat(nota) : "", { estilo: estiloCeldaCentrada });
+                        });
+
+                        const colIniLetra = notaDeInsumoLetraDeCol(colInsumoIni);
+                        const colFinLetra = notaDeInsumoLetraDeCol(colInsumoIni + numInsumos - 1);
+                        const refProm70 = `${notaDeInsumoLetraDeCol(colProm70)}${filaExcelNum}`;
+                        setCell(filaExcel, colProm70, 0, {
+                            formula: `IF(COUNT(${colIniLetra}${filaExcelNum}:${colFinLetra}${filaExcelNum})=0,"",AVERAGE(${colIniLetra}${filaExcelNum}:${colFinLetra}${filaExcelNum})*0.7)`,
+                            estilo: estiloCeldaCentrada
+                        });
+
+                        let notaProyecto = "", notaExamen = "";
+                        if (esPonderado) {
+                            if (nombreProyecto) {
+                                const claveDB = `${asignatura}_${paralelo}_${trimestre}_${nombreProyecto}`;
+                                const nota = notasGuardadas[claveDB]?.notas?.[estudiante];
+                                notaProyecto = (nota !== undefined && nota !== "") ? parseFloat(nota) : "";
+                            }
+                            if (nombreExamenes.length > 0) {
+                                const notas = nombreExamenes.map(ne => {
+                                    const claveDB = `${asignatura}_${paralelo}_${trimestre}_${ne}`;
+                                    const n = notasGuardadas[claveDB]?.notas?.[estudiante];
+                                    return (n !== undefined && n !== "") ? parseFloat(n) : null;
+                                }).filter(n => n !== null);
+                                if (notas.length > 0) notaExamen = notas.reduce((a, b) => a + b, 0) / notas.length;
+                            }
+                        }
+                        setCell(filaExcel, colProyecto, notaProyecto, { estilo: estiloCeldaCentrada });
+                        setCell(filaExcel, colExamen, notaExamen, { estilo: estiloCeldaCentrada });
+
+                        const refProy = `${notaDeInsumoLetraDeCol(colProyecto)}${filaExcelNum}`;
+                        const refExa = `${notaDeInsumoLetraDeCol(colExamen)}${filaExcelNum}`;
+                        setCell(filaExcel, colPromedio, 0, {
+                            formula: `IF(AND(${refProm70}="",${refProy}="",${refExa}=""),"",${refProm70}+(${refProy}*0.15)+(${refExa}*0.15))`,
+                            estilo: estiloCeldaCentrada
+                        });
+
+                        const refPromedio = `${notaDeInsumoLetraDeCol(colPromedio)}${filaExcelNum}`;
+                        setCell(filaExcel, colNotaFinal, 0, { formula: formulaLetraCualitativa(refPromedio), estilo: estiloCeldaCentrada });
+                    });
+
+                    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filaInicioAlumnos + listaEstudiantes.length - 1, c: totalCols - 1 } });
+                    ws['!merges'] = merges;
+                    ws['!cols'] = [
+                        { wch: 5 }, { wch: 32 },
+                        ...insumosRegulares.map(() => ({ wch: 12 })),
+                        { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }
+                    ];
+
+                    XLSX.utils.book_append_sheet(wb, ws, NOMBRES_HOJA[idxTrim]);
+
+                    // Guarda el rango donde quedó "Promedio" de este trimestre, para el Cuadro Final
+                    promediosPorTrimestre.push({ hoja: NOMBRES_HOJA[idxTrim], colPromedio, filaInicioAlumnos });
+                });
+
+                // ===== Hoja CUADRO FINAL =====
+                {
+                    const ws = {};
+                    const merges = [];
+                    const setCell = (r, c, valor, opciones = {}) => {
+                        const ref = XLSX.utils.encode_cell({ r, c });
+                        const cell = {};
+                        if (opciones.formula) { cell.f = opciones.formula; cell.t = 'n'; }
+                        else { cell.v = valor; cell.t = (typeof valor === 'number') ? 'n' : 's'; }
+                        if (opciones.estilo) cell.s = opciones.estilo;
+                        ws[ref] = cell;
+                    };
+                    const totalCols = 11; // A..K
+
+                    setCell(0, 0, instNombre, { estilo: estiloTituloPrincipal });
+                    merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } });
+                    setCell(1, 0, 'REPORTE DE RENDIMIENTO ACADÉMICO ANUAL', { estilo: estiloSubTitulo });
+                    merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } });
+                    setCell(2, 0, `AÑO LECTIVO ${config.anioLectivo}`, { estilo: estiloSubTitulo });
+                    merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: totalCols - 1 } });
+
+                    setCell(3, 0, 'CURSO:', { estilo: estiloEtiqueta });
+                    setCell(3, 1, cursoFormateado, { estilo: estiloEtiqueta });
+                    setCell(3, 3, 'Jornada', { estilo: estiloEtiqueta });
+                    setCell(3, 4, config.jornada, { estilo: estiloEtiqueta });
+                    setCell(4, 0, 'ÁREA:', { estilo: estiloEtiqueta });
+                    setCell(4, 1, asignatura.toUpperCase(), { estilo: estiloEtiqueta });
+                    setCell(4, 3, 'Docente', { estilo: estiloEtiqueta });
+                    setCell(4, 4, docente, { estilo: estiloEtiqueta });
+
+                    setCell(5, 0, 'N°', { estilo: estiloCabeceraTabla });
+                    setCell(5, 1, 'N Ó M I N A', { estilo: estiloCabeceraTabla });
+                    setCell(5, 2, 'PERIODO ACADÉMICO', { estilo: estiloCabeceraTabla });
+                    merges.push({ s: { r: 5, c: 2 }, e: { r: 5, c: 9 } });
+                    setCell(5, 10, 'OBSERVACIONES', { estilo: estiloCabeceraTabla });
+                    merges.push({ s: { r: 5, c: 10 }, e: { r: 6, c: 10 } });
+
+                    ['1 T', 'CUAL', '2 T', 'CUAL', '3 T', 'CUAL', 'NOTA FINAL', 'CUALITATIVA'].forEach((txt, i) => {
+                        setCell(6, 2 + i, txt, { estilo: estiloCabeceraTabla });
+                    });
+
+                    listaEstudiantes.forEach((estudiante, idx) => {
+                        const filaExcel = 7 + idx;
+                        const filaExcelNum = filaExcel + 1;
+                        setCell(filaExcel, 0, idx + 1, { estilo: estiloCeldaCentrada });
+                        setCell(filaExcel, 1, estudiante, { estilo: estiloCeldaDatos });
+
+                        [0, 1, 2].forEach((t, i) => {
+                            const p = promediosPorTrimestre[t];
+                            const filaOrigen = p.filaInicioAlumnos + idx + 1;
+                            const colOrigenLetra = XLSX.utils.encode_col(p.colPromedio);
+                            const colDestinoT = 2 + i * 2;
+                            const colDestinoCual = colDestinoT + 1;
+                            const refT = `${XLSX.utils.encode_col(colDestinoT)}${filaExcelNum}`;
+                            setCell(filaExcel, colDestinoT, 0, { formula: `IF('${p.hoja}'!${colOrigenLetra}${filaOrigen}="","",'${p.hoja}'!${colOrigenLetra}${filaOrigen})`, estilo: estiloCeldaCentrada });
+                            setCell(filaExcel, colDestinoCual, 0, { formula: formulaLetraCualitativa(refT), estilo: estiloCeldaCentrada });
+                        });
+
+                        const refC = `C${filaExcelNum}`, refE = `E${filaExcelNum}`, refG = `G${filaExcelNum}`;
+                        setCell(filaExcel, 8, 0, { formula: `IF(OR(${refC}="",${refE}="",${refG}=""),"",(${refC}+${refE}+${refG})/3)`, estilo: estiloCeldaCentrada });
+                        const refI = `I${filaExcelNum}`;
+                        setCell(filaExcel, 9, 0, { formula: formulaLetraCualitativa(refI), estilo: estiloCeldaCentrada });
+                        setCell(filaExcel, 10, '', { estilo: estiloCeldaDatos });
+                    });
+
+                    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: 7 + listaEstudiantes.length - 1, c: totalCols - 1 } });
+                    ws['!merges'] = merges;
+                    ws['!cols'] = [{ wch: 5 }, { wch: 32 }, { wch: 8 }, { wch: 7 }, { wch: 8 }, { wch: 7 }, { wch: 8 }, { wch: 7 }, { wch: 11 }, { wch: 12 }, { wch: 30 }];
+
+                    XLSX.utils.book_append_sheet(wb, ws, "CUADRO FINAL");
+                }
+
+                const fAct = new Date();
+                const fStr = `${fAct.getFullYear()}-${String(fAct.getMonth() + 1).padStart(2, '0')}-${String(fAct.getDate()).padStart(2, '0')}`;
+                XLSX.writeFile(wb, `Reporte_Trimestral_${asignatura}_${paralelo}_${fStr}.xlsx`);
+                mostrarToast("Reporte trimestral institucional generado correctamente.", 'exito');
+            } catch (err) {
+                console.error("Error al generar el reporte trimestral:", err);
+                mostrarToast("No se pudo generar el reporte. Intenta nuevamente.", 'error', 5000);
             }
         }
 
