@@ -2959,11 +2959,14 @@
 
                     const numInsumos = insumosRegulares.length;
                     const colInsumoIni = 2; // C
-                    const colProm70 = colInsumoIni + numInsumos;
-                    const colProyecto = colProm70 + 1;
-                    const colExamen = colProm70 + 2;
-                    const colPromedio = colProm70 + 3;
-                    const colNotaFinal = colProm70 + 4;
+                    const colPosInsumos = colInsumoIni + numInsumos; // primera columna después de los insumos
+                    // Modo ponderado: Prom 70% | Proyecto | Examen | Promedio | Nota final
+                    // Modo simple:    Promedio (promedio normal de todos los insumos) | Nota final
+                    const colProm70 = esPonderado ? colPosInsumos : null;
+                    const colProyecto = esPonderado ? colPosInsumos + 1 : null;
+                    const colExamen = esPonderado ? colPosInsumos + 2 : null;
+                    const colPromedio = esPonderado ? colPosInsumos + 3 : colPosInsumos;
+                    const colNotaFinal = colPromedio + 1;
                     const totalCols = colNotaFinal + 1;
                     const filaInicioAlumnos = 8; // fila 9 en Excel (índice 8) = primer alumno
 
@@ -3007,13 +3010,15 @@
                     insumosRegulares.forEach((nombreIns, i) => {
                         setCell(6, colInsumoIni + i, nombreIns, { estilo: estiloCabeceraTabla });
                     });
-                    setCell(6, colProm70, 'Prom insumos 70%', { estilo: estiloCabeceraTabla });
-                    setCell(6, colProyecto, 'SUMATIVA 30%', { estilo: estiloCabeceraTabla });
-                    merges.push({ s: { r: 6, c: colProyecto }, e: { r: 6, c: colExamen } });
+                    if (esPonderado) {
+                        setCell(6, colProm70, 'Prom insumos 70%', { estilo: estiloCabeceraTabla });
+                        setCell(6, colProyecto, 'SUMATIVA 30%', { estilo: estiloCabeceraTabla });
+                        merges.push({ s: { r: 6, c: colProyecto }, e: { r: 6, c: colExamen } });
+                        setCell(7, colProyecto, 'Proyecto', { estilo: estiloCabeceraTabla });
+                        setCell(7, colExamen, 'Examen', { estilo: estiloCabeceraTabla });
+                    }
                     setCell(6, colPromedio, 'Promedio', { estilo: estiloCabeceraTabla });
                     merges.push({ s: { r: 6, c: colPromedio }, e: { r: 7, c: colPromedio } });
-                    setCell(7, colProyecto, 'Proyecto', { estilo: estiloCabeceraTabla });
-                    setCell(7, colExamen, 'Examen', { estilo: estiloCabeceraTabla });
 
                     const notaDeInsumoLetraDeCol = (col) => XLSX.utils.encode_col(col);
 
@@ -3032,14 +3037,16 @@
 
                         const colIniLetra = notaDeInsumoLetraDeCol(colInsumoIni);
                         const colFinLetra = notaDeInsumoLetraDeCol(colInsumoIni + numInsumos - 1);
-                        const refProm70 = `${notaDeInsumoLetraDeCol(colProm70)}${filaExcelNum}`;
-                        setCell(filaExcel, colProm70, 0, {
-                            formula: `IF(COUNT(${colIniLetra}${filaExcelNum}:${colFinLetra}${filaExcelNum})=0,"",AVERAGE(${colIniLetra}${filaExcelNum}:${colFinLetra}${filaExcelNum})*0.7)`,
-                            estilo: estiloCeldaCentrada
-                        });
+                        const rangoInsumos = `${colIniLetra}${filaExcelNum}:${colFinLetra}${filaExcelNum}`;
 
-                        let notaProyecto = "", notaExamen = "";
                         if (esPonderado) {
+                            const refProm70 = `${notaDeInsumoLetraDeCol(colProm70)}${filaExcelNum}`;
+                            setCell(filaExcel, colProm70, 0, {
+                                formula: `IF(COUNT(${rangoInsumos})=0,"",AVERAGE(${rangoInsumos})*0.7)`,
+                                estilo: estiloCeldaCentrada
+                            });
+
+                            let notaProyecto = "", notaExamen = "";
                             if (nombreProyecto) {
                                 const claveDB = `${asignatura}_${paralelo}_${trimestre}_${nombreProyecto}`;
                                 const nota = notasGuardadas[claveDB]?.notas?.[estudiante];
@@ -3053,16 +3060,22 @@
                                 }).filter(n => n !== null);
                                 if (notas.length > 0) notaExamen = notas.reduce((a, b) => a + b, 0) / notas.length;
                             }
-                        }
-                        setCell(filaExcel, colProyecto, notaProyecto, { estilo: estiloCeldaCentrada });
-                        setCell(filaExcel, colExamen, notaExamen, { estilo: estiloCeldaCentrada });
+                            setCell(filaExcel, colProyecto, notaProyecto, { estilo: estiloCeldaCentrada });
+                            setCell(filaExcel, colExamen, notaExamen, { estilo: estiloCeldaCentrada });
 
-                        const refProy = `${notaDeInsumoLetraDeCol(colProyecto)}${filaExcelNum}`;
-                        const refExa = `${notaDeInsumoLetraDeCol(colExamen)}${filaExcelNum}`;
-                        setCell(filaExcel, colPromedio, 0, {
-                            formula: `IF(AND(${refProm70}="",${refProy}="",${refExa}=""),"",${refProm70}+(${refProy}*0.15)+(${refExa}*0.15))`,
-                            estilo: estiloCeldaCentrada
-                        });
+                            const refProy = `${notaDeInsumoLetraDeCol(colProyecto)}${filaExcelNum}`;
+                            const refExa = `${notaDeInsumoLetraDeCol(colExamen)}${filaExcelNum}`;
+                            setCell(filaExcel, colPromedio, 0, {
+                                formula: `IF(AND(${refProm70}="",${refProy}="",${refExa}=""),"",${refProm70}+(${refProy}*0.15)+(${refExa}*0.15))`,
+                                estilo: estiloCeldaCentrada
+                            });
+                        } else {
+                            // Modo simple: promedio normal de todos los insumos (sin ponderación)
+                            setCell(filaExcel, colPromedio, 0, {
+                                formula: `IF(COUNT(${rangoInsumos})=0,"",AVERAGE(${rangoInsumos}))`,
+                                estilo: estiloCeldaCentrada
+                            });
+                        }
 
                         const refPromedio = `${notaDeInsumoLetraDeCol(colPromedio)}${filaExcelNum}`;
                         setCell(filaExcel, colNotaFinal, 0, { formula: formulaLetraCualitativa(refPromedio), estilo: estiloCeldaCentrada });
@@ -3073,7 +3086,9 @@
                     ws['!cols'] = [
                         { wch: 5 }, { wch: 32 },
                         ...insumosRegulares.map(() => ({ wch: 12 })),
-                        { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }
+                        ...(esPonderado
+                            ? [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }]
+                            : [{ wch: 11 }, { wch: 10 }])
                     ];
 
                     XLSX.utils.book_append_sheet(wb, ws, NOMBRES_HOJA[idxTrim]);
