@@ -332,7 +332,7 @@
                     <!-- Insumos -->
                     <div class="pt-3 border-t border-blue-100 space-y-2">
                         <label class="block text-[11px] font-bold text-indigo-900 uppercase">Insumo de evaluación</label>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
                             <select id="selectInsumos" onchange="alCambiarInsumoSelect()" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
                             </select>
                             <button type="button" onclick="agregarNuevoInsumo()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" aria-label="Agregar insumo">
@@ -341,11 +341,15 @@
                             <button type="button" id="btnEditarCategoriaInsumo" onclick="editarCategoriaInsumoActual()" class="hidden bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" title="Cambiar si este insumo es Insumo/Proyecto/Examen" aria-label="Editar categoría del insumo">
                                 <i class="fa-solid fa-tag"></i>
                             </button>
+                            <button type="button" id="btnAbrirRubricaInsumo" onclick="abrirSelectorRubricaInsumo()" class="bg-violet-100 hover:bg-violet-200 text-violet-800 font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" title="Calificar este insumo con una rúbrica" aria-label="Asignar rúbrica al insumo">
+                                <i class="fa-solid fa-clipboard-list"></i>
+                            </button>
                             <button type="button" onclick="eliminarInsumoActual()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" aria-label="Eliminar insumo">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
                         <p id="textoCategoriaInsumoActual" class="hidden text-[10px] font-bold text-amber-700"></p>
+                        <p id="textoRubricaInsumoActual" class="hidden text-[10px] font-bold text-violet-700"></p>
                     </div>
 
                     <button type="button" onclick="toggleConfigPanel(false)" class="w-full text-center text-[11px] font-bold text-indigo-500 hover:text-indigo-700 pt-1">
@@ -432,6 +436,105 @@
 
     <!-- Input oculto dinámico para capturar la foto de un alumno -->
     <input type="file" id="fileInputEvidencia" accept="image/*" class="hidden" onchange="procesarFotoEvidencia(event)">
+
+    <!-- ============ MODALES DE RÚBRICAS ============ -->
+
+    <!-- Modal 1: asignar/quitar la rúbrica de un insumo -->
+    <div id="modalAsignarRubrica" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl relative border-2 border-indigo-100 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center border-b pb-2 flex-shrink-0">
+                <h3 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1">
+                    <i class="fa-solid fa-clipboard-list text-indigo-600"></i> Rúbrica del insumo
+                </h3>
+                <button onclick="cerrarModalAsignarRubrica()" class="text-gray-400 hover:text-rose-600 text-lg font-bold p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <p id="textoRubricaAsignadaActual" class="text-xs text-gray-600 mt-3 mb-2"></p>
+
+            <div id="listaRubricasDisponibles" class="space-y-2 overflow-y-auto flex-1 py-1"></div>
+
+            <div class="pt-3 mt-2 border-t flex-shrink-0 space-y-2">
+                <button onclick="abrirModalCrearRubrica()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-plus"></i> Crear nueva rúbrica
+                </button>
+                <button id="btnQuitarRubricaInsumo" onclick="quitarRubricaDeInsumo()" class="hidden w-full bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-2.5 rounded-xl text-xs transition">
+                    Quitar rúbrica de este insumo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: crear o editar una rúbrica (nombre + criterios con puntos) -->
+    <div id="modalCrearRubrica" class="fixed inset-0 z-[210] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl relative border-2 border-indigo-100 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center border-b pb-2 flex-shrink-0">
+                <h3 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1">
+                    <i class="fa-solid fa-list-check text-indigo-600"></i> <span id="tituloModalCrearRubrica">Nueva rúbrica</span>
+                </h3>
+                <button onclick="cerrarModalCrearRubrica()" class="text-gray-400 hover:text-rose-600 text-lg font-bold p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 py-3 space-y-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-indigo-900 uppercase mb-1">Nombre de la rúbrica</label>
+                    <input type="text" id="inputNombreRubrica" placeholder="Ej: Trabajo en equipo" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-indigo-900 uppercase mb-1">Criterios</label>
+                    <div id="listaCriteriosRubrica" class="space-y-2"></div>
+                    <button onclick="agregarFilaCriterioRubrica()" class="w-full mt-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 rounded-xl text-xs transition border border-dashed border-indigo-300">
+                        <i class="fa-solid fa-plus"></i> Agregar criterio
+                    </button>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t flex-shrink-0">
+                <div class="flex justify-between items-center text-xs mb-2">
+                    <span class="text-gray-500">Suma de puntos</span>
+                    <span id="sumaPuntosCriterios" class="font-bold text-indigo-900">0 / 10</span>
+                </div>
+                <button onclick="guardarRubricaNueva()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                    Guardar rúbrica
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: evaluar a un alumno con la rúbrica asignada -->
+    <div id="modalEvaluarRubrica" class="fixed inset-0 z-[210] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl relative border-2 border-indigo-100 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center border-b pb-2 flex-shrink-0">
+                <h3 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1">
+                    <i class="fa-solid fa-clipboard-check text-indigo-600"></i> Evaluar con rúbrica
+                </h3>
+                <button onclick="cerrarModalEvaluarRubrica()" class="text-gray-400 hover:text-rose-600 text-lg font-bold p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <p id="nombreAlumnoRubrica" class="text-xs font-bold text-gray-800 mt-3"></p>
+            <p id="nombreRubricaUsada" class="text-[11px] text-gray-500 mb-2"></p>
+            <button onclick="abrirSelectorExcepcionAlumno()" class="text-[11px] text-indigo-600 hover:text-indigo-800 underline text-left mb-2">
+                Usar otra rúbrica para este alumno
+            </button>
+
+            <div id="listaCriteriosEvaluacion" class="space-y-2 overflow-y-auto flex-1 py-1"></div>
+
+            <div class="pt-3 border-t flex-shrink-0">
+                <div class="flex justify-between items-center text-xs mb-2">
+                    <span class="text-gray-500">Nota total</span>
+                    <span id="totalNotaRubrica" class="font-bold text-indigo-900 text-base">0.0 / 10</span>
+                </div>
+                <button onclick="guardarEvaluacionRubrica()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                    Guardar nota
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Contenedor de notificaciones tipo toast (reemplaza a alert() para mensajes informativos) -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[300] flex flex-col gap-2 items-center w-full px-4 pointer-events-none"></div>
@@ -713,6 +816,18 @@
                         categoriaInsumos = data.categoriaInsumos;
                         guardarLS('categoriaInsumos', categoriaInsumos);
                     }
+                    if (data.rubricasPersonalizadas) {
+                        rubricasPersonalizadas = data.rubricasPersonalizadas;
+                        guardarLS('rubricasPersonalizadas', rubricasPersonalizadas);
+                    }
+                    if (data.rubricaAsignadaInsumo) {
+                        rubricaAsignadaInsumo = data.rubricaAsignadaInsumo;
+                        guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+                    }
+                    if (data.rubricaExcepcionAlumno) {
+                        rubricaExcepcionAlumno = data.rubricaExcepcionAlumno;
+                        guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+                    }
 
                     renderizarSelectAsignaturas();
                     renderizarSelectParalelos();
@@ -761,6 +876,13 @@
         // Categoría de cada insumo cuando el paralelo es "ponderado": 'insumo' | 'proyecto' | 'examen'.
         // Estructura: { "Asignatura_Paralelo": { "NombreInsumo": "proyecto" } }
         let categoriaInsumos = cargarLS('categoriaInsumos', {});
+        // Biblioteca de rúbricas reutilizables: { "Nombre rúbrica": { criterios: [{nombre, max}, ...] } }
+        let rubricasPersonalizadas = cargarLS('rubricasPersonalizadas', {});
+        // Qué rúbrica usa cada insumo: { "Asig_Paralelo_Trimestre_Insumo": "Nombre rúbrica" }
+        let rubricaAsignadaInsumo = cargarLS('rubricaAsignadaInsumo', {});
+        // Excepciones puntuales por alumno (ej. adaptación por discapacidad):
+        // { "Asig_Paralelo_Trimestre_Insumo": { "Nombre Alumno": "Nombre rúbrica" } }
+        let rubricaExcepcionAlumno = cargarLS('rubricaExcepcionAlumno', {});
         // Recuerda el último contexto (asignatura/paralelo/trimestre/insumo) que estaba
         // realmente pintado en pantalla, para poder guardarlo automáticamente si el
         // usuario cambia de selección sin pulsar "Guardar" (evita pérdida de datos).
@@ -839,6 +961,10 @@
                     Object.assign(listaInsumosPersonalizados, borrados.insumosBorrados);
                     Object.assign(categoriaInsumos, borrados.categoriasBorradas);
                     Object.assign(notasGuardadas, borrados.notasBorradas);
+                    Object.assign(rubricaAsignadaInsumo, borrados.rubricasAsignadasBorradas);
+                    Object.assign(rubricaExcepcionAlumno, borrados.excepcionesBorradas);
+                    guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+                    guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
                     guardarLS('listaAsignaturas', listaAsignaturas);
                     guardarLS('asignaturasParalelos', asignaturasParalelos);
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
@@ -868,10 +994,20 @@
             Object.keys(notasGuardadas).forEach(k => {
                 if (k.startsWith(prefijo)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
             });
+            const rubricasAsignadasBorradas = {};
+            const excepcionesBorradas = {};
+            Object.keys(rubricaAsignadaInsumo).forEach(k => {
+                if (k.startsWith(prefijo)) { rubricasAsignadasBorradas[k] = rubricaAsignadaInsumo[k]; delete rubricaAsignadaInsumo[k]; }
+            });
+            Object.keys(rubricaExcepcionAlumno).forEach(k => {
+                if (k.startsWith(prefijo)) { excepcionesBorradas[k] = rubricaExcepcionAlumno[k]; delete rubricaExcepcionAlumno[k]; }
+            });
             guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
             guardarLS('categoriaInsumos', categoriaInsumos);
             guardarLS('notasGuardadasDB', notasGuardadas);
-            return { insumosBorrados, categoriasBorradas, notasBorradas };
+            guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+            guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+            return { insumosBorrados, categoriasBorradas, notasBorradas, rubricasAsignadasBorradas, excepcionesBorradas };
         }
 
         // Elimina insumos y notas huérfanas al quitar un paralelo de una asignatura
@@ -897,10 +1033,20 @@
             Object.keys(notasGuardadas).forEach(k => {
                 if (k.startsWith(prefijoBase + '_')) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
             });
+            const rubricasAsignadasBorradas = {};
+            const excepcionesBorradas = {};
+            Object.keys(rubricaAsignadaInsumo).forEach(k => {
+                if (k.startsWith(prefijoBase + '_')) { rubricasAsignadasBorradas[k] = rubricaAsignadaInsumo[k]; delete rubricaAsignadaInsumo[k]; }
+            });
+            Object.keys(rubricaExcepcionAlumno).forEach(k => {
+                if (k.startsWith(prefijoBase + '_')) { excepcionesBorradas[k] = rubricaExcepcionAlumno[k]; delete rubricaExcepcionAlumno[k]; }
+            });
             guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
             guardarLS('categoriaInsumos', categoriaInsumos);
             guardarLS('notasGuardadasDB', notasGuardadas);
-            return { insumosBorrados, categoriasBorradas, notasBorradas };
+            guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+            guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+            return { insumosBorrados, categoriasBorradas, notasBorradas, rubricasAsignadasBorradas, excepcionesBorradas };
         }
 
         function alCambiarAsignatura() {
@@ -1090,6 +1236,22 @@
 
         // Muestra/oculta el botón de "editar categoría" y el texto de categoría actual,
         // según si el paralelo es ponderado y hay un insumo seleccionado.
+        // Muestra debajo del selector de insumo qué rúbrica tiene asignada (si tiene)
+        function actualizarUIRubricaInsumo() {
+            const texto = document.getElementById('textoRubricaInsumoActual');
+            if (!texto) return;
+            const insumo = document.getElementById('selectInsumos')?.value;
+            const paralelo = document.getElementById('selectParalelo')?.value;
+            if (!insumo || !paralelo) { texto.classList.add('hidden'); return; }
+            const asignada = obtenerRubricaAsignada(claveDBInsumoActual());
+            if (asignada && rubricasPersonalizadas[asignada]) {
+                texto.innerText = `Rúbrica: ${asignada}`;
+                texto.classList.remove('hidden');
+            } else {
+                texto.classList.add('hidden');
+            }
+        }
+
         function actualizarUICategoriaInsumo() {
             const btn = document.getElementById('btnEditarCategoriaInsumo');
             const texto = document.getElementById('textoCategoriaInsumoActual');
@@ -1143,8 +1305,351 @@
             guardarLS('categoriaInsumos', categoriaInsumos);
 
             actualizarUICategoriaInsumo();
+            actualizarUIRubricaInsumo();
             actualizarPromediosPantalla();
             mostrarToast(`"${insumo}" ahora es: ${etiquetas[nuevaCategoria]}. Las notas no cambiaron.`, 'exito', 4500);
+        }
+
+        // ===================================================================
+        // RÚBRICAS DE EVALUACIÓN: opcional por insumo. Un insumo sin rúbrica
+        // asignada sigue pidiendo la nota a mano, exactamente como siempre.
+        // La nota que calcula la rúbrica cae en el mismo lugar de siempre
+        // (notasGuardadas[claveDB].notas[alumno]), así que el promedio, el
+        // Excel y el Reporte Trimestral no necesitan saber que existe.
+        // ===================================================================
+
+        function claveDBDesde(asignatura, paralelo, trimestre, insumo) {
+            return `${asignatura}_${paralelo}_${trimestre}_${insumo}`;
+        }
+
+        function claveDBInsumoActual() {
+            return claveDBDesde(
+                document.getElementById('selectAsignatura').value,
+                document.getElementById('selectParalelo').value,
+                document.getElementById('selectTrimestre').value,
+                document.getElementById('selectInsumos').value
+            );
+        }
+
+        // Rúbrica asignada al insumo completo (sin contemplar excepciones de alumno)
+        function obtenerRubricaAsignada(claveDB) {
+            return rubricaAsignadaInsumo[claveDB] || null;
+        }
+
+        // Rúbrica que realmente le toca a ESTE alumno: su excepción puntual si tiene,
+        // si no, la del insumo completo.
+        function obtenerRubricaEfectiva(claveDB, estudiante) {
+            const excepcion = rubricaExcepcionAlumno[claveDB]?.[estudiante];
+            if (excepcion && rubricasPersonalizadas[excepcion]) return excepcion;
+            const delInsumo = obtenerRubricaAsignada(claveDB);
+            if (delInsumo && rubricasPersonalizadas[delInsumo]) return delInsumo;
+            return null;
+        }
+
+        // Suma los puntos dados en cada criterio (respetando el máximo de cada uno)
+        function calcularNotaRubrica(nombreRubrica, puntosPorCriterio) {
+            const rubrica = rubricasPersonalizadas[nombreRubrica];
+            if (!rubrica) return 0;
+            let total = 0;
+            rubrica.criterios.forEach(c => {
+                let v = parseFloat(puntosPorCriterio?.[c.nombre]);
+                if (isNaN(v)) v = 0;
+                if (v < 0) v = 0;
+                if (v > c.max) v = c.max;
+                total += v;
+            });
+            return Math.round(total * 100) / 100;
+        }
+
+        // ----- Modal 1: asignar/quitar la rúbrica de un insumo -----
+
+        function abrirSelectorRubricaInsumo() {
+            const insumo = document.getElementById('selectInsumos').value;
+            if (!insumo) { mostrarToast('Selecciona un insumo primero.', 'error'); return; }
+            renderizarListaRubricasDisponibles();
+            document.getElementById('modalAsignarRubrica').classList.remove('hidden');
+        }
+
+        function cerrarModalAsignarRubrica() {
+            document.getElementById('modalAsignarRubrica').classList.add('hidden');
+        }
+
+        function renderizarListaRubricasDisponibles() {
+            const claveDB = claveDBInsumoActual();
+            const asignadaActual = obtenerRubricaAsignada(claveDB);
+            const texto = document.getElementById('textoRubricaAsignadaActual');
+            const btnQuitar = document.getElementById('btnQuitarRubricaInsumo');
+
+            texto.innerHTML = asignadaActual
+                ? `Rúbrica asignada: <b class="text-indigo-700">${escapeHtml(asignadaActual)}</b>`
+                : 'Este insumo no tiene rúbrica asignada (se califica a mano).';
+            btnQuitar.classList.toggle('hidden', !asignadaActual);
+
+            const cont = document.getElementById('listaRubricasDisponibles');
+            const nombres = Object.keys(rubricasPersonalizadas);
+            if (nombres.length === 0) {
+                cont.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Aún no has creado ninguna rúbrica.</p>`;
+                return;
+            }
+            cont.innerHTML = nombres.map(nombre => {
+                const activa = nombre === asignadaActual;
+                const numCriterios = rubricasPersonalizadas[nombre].criterios.length;
+                return `
+                    <div class="flex items-center gap-2 p-2.5 rounded-xl border ${activa ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200'}">
+                        <button type="button" onclick="asignarRubricaAInsumo('${nombre.replace(/'/g, "\\'")}')" class="flex-1 text-left">
+                            <span class="text-xs font-bold text-gray-800 block">${escapeHtml(nombre)}</span>
+                            <span class="text-[10px] text-gray-500">${numCriterios} criterio${numCriterios === 1 ? '' : 's'}</span>
+                        </button>
+                        <button type="button" onclick="abrirModalCrearRubrica('${nombre.replace(/'/g, "\\'")}')" class="text-gray-400 hover:text-indigo-600 p-1.5" title="Editar">
+                            <i class="fa-solid fa-pen text-xs"></i>
+                        </button>
+                        <button type="button" onclick="eliminarRubricaDeBiblioteca('${nombre.replace(/'/g, "\\'")}')" class="text-gray-400 hover:text-rose-600 p-1.5" title="Eliminar de la biblioteca">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function asignarRubricaAInsumo(nombreRubrica) {
+            const claveDB = claveDBInsumoActual();
+            rubricaAsignadaInsumo[claveDB] = nombreRubrica;
+            guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+            cerrarModalAsignarRubrica();
+            cargarEstudiantesYNotas();
+            mostrarToast(`Rúbrica "${nombreRubrica}" asignada a este insumo.`, 'exito');
+        }
+
+        function quitarRubricaDeInsumo() {
+            const claveDB = claveDBInsumoActual();
+            if (!confirm('¿Quitar la rúbrica de este insumo? Las notas ya calificadas no se borran, pero de ahora en adelante se calificará a mano.')) return;
+            delete rubricaAsignadaInsumo[claveDB];
+            guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+            cerrarModalAsignarRubrica();
+            cargarEstudiantesYNotas();
+            mostrarToast('Rúbrica quitada de este insumo.', 'info');
+        }
+
+        // ----- Modal 2: crear o editar una rúbrica -----
+
+        let criteriosTemporalesRubrica = [];
+        let editandoRubricaNombreOriginal = null;
+
+        function abrirModalCrearRubrica(nombreExistente = null) {
+            cerrarModalAsignarRubrica();
+            editandoRubricaNombreOriginal = nombreExistente;
+            if (nombreExistente && rubricasPersonalizadas[nombreExistente]) {
+                document.getElementById('inputNombreRubrica').value = nombreExistente;
+                criteriosTemporalesRubrica = rubricasPersonalizadas[nombreExistente].criterios.map(c => ({ ...c }));
+                document.getElementById('tituloModalCrearRubrica').innerText = 'Editar rúbrica';
+            } else {
+                document.getElementById('inputNombreRubrica').value = '';
+                criteriosTemporalesRubrica = [{ nombre: '', max: 0 }];
+                document.getElementById('tituloModalCrearRubrica').innerText = 'Nueva rúbrica';
+            }
+            renderizarCriteriosRubrica();
+            document.getElementById('modalCrearRubrica').classList.remove('hidden');
+        }
+
+        function cerrarModalCrearRubrica() {
+            document.getElementById('modalCrearRubrica').classList.add('hidden');
+        }
+
+        function renderizarCriteriosRubrica() {
+            const cont = document.getElementById('listaCriteriosRubrica');
+            cont.innerHTML = criteriosTemporalesRubrica.map((c, i) => `
+                <div class="flex items-center gap-2">
+                    <input type="text" value="${escapeHtml(c.nombre)}" placeholder="Nombre del criterio" oninput="criteriosTemporalesRubrica[${i}].nombre = this.value" class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-indigo-400">
+                    <input type="number" min="0" step="0.5" value="${c.max}" oninput="criteriosTemporalesRubrica[${i}].max = parseFloat(this.value)||0; recalcularSumaCriterios();" class="w-16 bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:border-indigo-400">
+                    <button type="button" onclick="quitarFilaCriterioRubrica(${i})" class="text-gray-300 hover:text-rose-500 p-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            `).join('');
+            recalcularSumaCriterios();
+        }
+
+        function agregarFilaCriterioRubrica() {
+            criteriosTemporalesRubrica.push({ nombre: '', max: 0 });
+            renderizarCriteriosRubrica();
+        }
+
+        function quitarFilaCriterioRubrica(i) {
+            criteriosTemporalesRubrica.splice(i, 1);
+            renderizarCriteriosRubrica();
+        }
+
+        function recalcularSumaCriterios() {
+            const suma = criteriosTemporalesRubrica.reduce((a, c) => a + (parseFloat(c.max) || 0), 0);
+            const span = document.getElementById('sumaPuntosCriterios');
+            span.innerText = `${suma} / 10`;
+            span.className = suma === 10 ? 'font-bold text-emerald-700' : 'font-bold text-amber-600';
+        }
+
+        function guardarRubricaNueva() {
+            const nombre = document.getElementById('inputNombreRubrica').value.trim();
+            if (!nombre) { mostrarToast('Escribe un nombre para la rúbrica.', 'error'); return; }
+            const criteriosValidos = criteriosTemporalesRubrica.filter(c => c.nombre.trim() !== '');
+            if (criteriosValidos.length === 0) { mostrarToast('Agrega al menos un criterio.', 'error'); return; }
+
+            const suma = criteriosValidos.reduce((a, c) => a + (parseFloat(c.max) || 0), 0);
+            if (suma !== 10) {
+                if (!confirm(`Los criterios suman ${suma} puntos, no 10.\n¿Deseas guardarla igual? (la nota final usará la suma real de puntos)`)) return;
+            }
+
+            // Si se renombró una rúbrica existente, se actualizan también sus asignaciones
+            if (editandoRubricaNombreOriginal && editandoRubricaNombreOriginal !== nombre) {
+                delete rubricasPersonalizadas[editandoRubricaNombreOriginal];
+                Object.keys(rubricaAsignadaInsumo).forEach(k => {
+                    if (rubricaAsignadaInsumo[k] === editandoRubricaNombreOriginal) rubricaAsignadaInsumo[k] = nombre;
+                });
+                guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+            }
+
+            rubricasPersonalizadas[nombre] = { criterios: criteriosValidos.map(c => ({ nombre: c.nombre.trim(), max: parseFloat(c.max) || 0 })) };
+            guardarLS('rubricasPersonalizadas', rubricasPersonalizadas);
+
+            cerrarModalCrearRubrica();
+            cargarEstudiantesYNotas();
+            mostrarToast(`Rúbrica "${nombre}" guardada.`, 'exito');
+        }
+
+        function eliminarRubricaDeBiblioteca(nombre) {
+            const enUso = Object.values(rubricaAsignadaInsumo).includes(nombre) ||
+                Object.values(rubricaExcepcionAlumno).some(mapa => Object.values(mapa).includes(nombre));
+            const aviso = enUso
+                ? `"${nombre}" está en uso en al menos un insumo. Si la eliminas, esos insumos volverán a calificarse a mano (las notas ya puestas no se borran). ¿Continuar?`
+                : `¿Eliminar la rúbrica "${nombre}" de tu biblioteca?`;
+            if (!confirm(aviso)) return;
+
+            delete rubricasPersonalizadas[nombre];
+            guardarLS('rubricasPersonalizadas', rubricasPersonalizadas);
+            Object.keys(rubricaAsignadaInsumo).forEach(k => { if (rubricaAsignadaInsumo[k] === nombre) delete rubricaAsignadaInsumo[k]; });
+            guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+            Object.keys(rubricaExcepcionAlumno).forEach(k => {
+                Object.keys(rubricaExcepcionAlumno[k]).forEach(al => { if (rubricaExcepcionAlumno[k][al] === nombre) delete rubricaExcepcionAlumno[k][al]; });
+            });
+            guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+
+            renderizarListaRubricasDisponibles();
+            cargarEstudiantesYNotas();
+            mostrarToast('Rúbrica eliminada.', 'info');
+        }
+
+        // ----- Modal 3: evaluar a un alumno con su rúbrica -----
+
+        let alumnoActualRubrica = null;
+        let rubricaUsadaEnModal = null;
+
+        function abrirModalEvaluarRubrica(nombreAttr) {
+            const claveDB = claveDBInsumoActual();
+            const nombreRubrica = obtenerRubricaEfectiva(claveDB, nombreAttr);
+            if (!nombreRubrica) { mostrarToast('Este insumo no tiene una rúbrica asignada.', 'error'); return; }
+
+            alumnoActualRubrica = nombreAttr;
+            rubricaUsadaEnModal = nombreRubrica;
+
+            document.getElementById('nombreAlumnoRubrica').innerText = nombreAttr;
+            document.getElementById('nombreRubricaUsada').innerText = `Rúbrica: ${nombreRubrica}`;
+            renderizarCriteriosEvaluacion();
+            document.getElementById('modalEvaluarRubrica').classList.remove('hidden');
+        }
+
+        function cerrarModalEvaluarRubrica() {
+            document.getElementById('modalEvaluarRubrica').classList.add('hidden');
+            alumnoActualRubrica = null;
+            rubricaUsadaEnModal = null;
+        }
+
+        function renderizarCriteriosEvaluacion() {
+            const rubrica = rubricasPersonalizadas[rubricaUsadaEnModal];
+            const claveDB = claveDBInsumoActual();
+            const puntosGuardados = notasGuardadas[claveDB]?.rubricaPuntos?.[alumnoActualRubrica] || {};
+
+            const cont = document.getElementById('listaCriteriosEvaluacion');
+            cont.innerHTML = rubrica.criterios.map((c, i) => {
+                const valorGuardado = puntosGuardados[c.nombre] !== undefined ? puntosGuardados[c.nombre] : c.max;
+                return `
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1">
+                            <p class="text-xs text-gray-800">${escapeHtml(c.nombre)}</p>
+                            <p class="text-[10px] text-gray-400">Máximo ${c.max} pts</p>
+                        </div>
+                        <input type="number" min="0" max="${c.max}" step="0.5" value="${valorGuardado}" data-criterio="${escapeHtml(c.nombre)}" data-max="${c.max}" oninput="recalcularTotalRubricaModal()" class="criterio-rubrica-input w-16 bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:border-indigo-400">
+                    </div>
+                `;
+            }).join('');
+            recalcularTotalRubricaModal();
+        }
+
+        function recalcularTotalRubricaModal() {
+            let total = 0;
+            document.querySelectorAll('#listaCriteriosEvaluacion .criterio-rubrica-input').forEach(inp => {
+                let v = parseFloat(inp.value);
+                const max = parseFloat(inp.dataset.max);
+                if (isNaN(v)) v = 0;
+                if (v < 0) v = 0;
+                if (v > max) v = max;
+                total += v;
+            });
+            document.getElementById('totalNotaRubrica').innerText = `${total.toFixed(1)} / 10`;
+        }
+
+        function guardarEvaluacionRubrica() {
+            const claveDB = claveDBInsumoActual();
+            const puntos = {};
+            document.querySelectorAll('#listaCriteriosEvaluacion .criterio-rubrica-input').forEach(inp => {
+                let v = parseFloat(inp.value);
+                const max = parseFloat(inp.dataset.max);
+                if (isNaN(v)) v = 0;
+                if (v < 0) v = 0;
+                if (v > max) v = max;
+                puntos[inp.dataset.criterio] = v;
+            });
+            const notaFinal = calcularNotaRubrica(rubricaUsadaEnModal, puntos);
+
+            if (!notasGuardadas[claveDB]) {
+                notasGuardadas[claveDB] = { fecha: obtenerFechaActualFormato(), notas: {}, asistencia: {}, observaciones: {}, evidencias: {}, rubricaPuntos: {} };
+            }
+            if (!notasGuardadas[claveDB].rubricaPuntos) notasGuardadas[claveDB].rubricaPuntos = {};
+            notasGuardadas[claveDB].rubricaPuntos[alumnoActualRubrica] = puntos;
+            notasGuardadas[claveDB].notas[alumnoActualRubrica] = notaFinal;
+            guardarLS('notasGuardadasDB', notasGuardadas);
+
+            cerrarModalEvaluarRubrica();
+            cargarEstudiantesYNotas();
+            actualizarIndicadorGuardado();
+            mostrarToast(`Nota guardada: ${notaFinal.toFixed(1)}`, 'exito');
+        }
+
+        // Permite usar una rúbrica distinta solo para este alumno (ej. adaptación puntual)
+        function abrirSelectorExcepcionAlumno() {
+            const nombres = Object.keys(rubricasPersonalizadas);
+            if (nombres.length === 0) { mostrarToast('No hay otras rúbricas creadas todavía.', 'info'); return; }
+
+            const opciones = nombres.map((n, i) => `${i + 1} = ${n}`).join('\n');
+            const respuesta = prompt(`¿Qué rúbrica usar para ${alumnoActualRubrica}?\n\n${opciones}\n\n(Deja vacío para volver a la rúbrica del insumo)`, '');
+            if (respuesta === null) return;
+
+            const claveDB = claveDBInsumoActual();
+            const limpio = respuesta.trim();
+
+            if (limpio === '') {
+                if (rubricaExcepcionAlumno[claveDB]) delete rubricaExcepcionAlumno[claveDB][alumnoActualRubrica];
+                guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+                rubricaUsadaEnModal = obtenerRubricaAsignada(claveDB);
+            } else {
+                const idx = parseInt(limpio, 10) - 1;
+                const elegida = nombres[idx];
+                if (!elegida) { mostrarToast('Opción no válida.', 'error'); return; }
+                if (!rubricaExcepcionAlumno[claveDB]) rubricaExcepcionAlumno[claveDB] = {};
+                rubricaExcepcionAlumno[claveDB][alumnoActualRubrica] = elegida;
+                guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+                rubricaUsadaEnModal = elegida;
+            }
+
+            document.getElementById('nombreRubricaUsada').innerText = `Rúbrica: ${rubricaUsadaEnModal}`;
+            renderizarCriteriosEvaluacion();
         }
 
         // Calcula el promedio trimestral de un alumno, según el modo del paralelo.
@@ -1266,6 +1771,10 @@
                     Object.assign(listaInsumosPersonalizados, borrados.insumosBorrados);
                     Object.assign(categoriaInsumos, borrados.categoriasBorradas);
                     Object.assign(notasGuardadas, borrados.notasBorradas);
+                    Object.assign(rubricaAsignadaInsumo, borrados.rubricasAsignadasBorradas);
+                    Object.assign(rubricaExcepcionAlumno, borrados.excepcionesBorradas);
+                    guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+                    guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
                     guardarLS('asignaturasParalelos', asignaturasParalelos);
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
                     guardarLS('categoriaInsumos', categoriaInsumos);
@@ -1529,6 +2038,14 @@
                     guardarLS('notasGuardadasDB', notasGuardadas);
                 }
 
+                // También se suelta la rúbrica asignada a este insumo (y sus excepciones por alumno)
+                const rubricaAsignadaAntes = rubricaAsignadaInsumo[claveDB];
+                const excepcionesAntes = rubricaExcepcionAlumno[claveDB];
+                delete rubricaAsignadaInsumo[claveDB];
+                delete rubricaExcepcionAlumno[claveDB];
+                guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+                guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+
                 renderizarSelectInsumos();
 
                 mostrarToastAccion(`Insumo "${insumoBorrar}" eliminado de ${trimestre}.`, 'Deshacer', () => {
@@ -1538,6 +2055,10 @@
                         categoriaInsumos[claveNueva][insumoBorrar] = categoriaAntes;
                     }
                     if (notaBorrada) notasGuardadas[claveDB] = notaBorrada;
+                    if (rubricaAsignadaAntes !== undefined) rubricaAsignadaInsumo[claveDB] = rubricaAsignadaAntes;
+                    if (excepcionesAntes !== undefined) rubricaExcepcionAlumno[claveDB] = excepcionesAntes;
+                    guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+                    guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
                     guardarLS('categoriaInsumos', categoriaInsumos);
                     guardarLS('notasGuardadasDB', notasGuardadas);
@@ -1549,6 +2070,7 @@
 
         function alCambiarInsumoSelect() {
             actualizarUICategoriaInsumo();
+            actualizarUIRubricaInsumo();
             cargarEstudiantesYNotas();
         }
 
@@ -1708,6 +2230,7 @@
             actualizarModoParaleloUI();
             actualizarPestanasTrimestre();
             actualizarUICategoriaInsumo();
+            actualizarUIRubricaInsumo();
 
             const contenedor = document.getElementById('listaEstudiantes');
             let lista = estudiantesData[paralelo] || [];
@@ -1781,6 +2304,17 @@
                 const nombreAttr = nombreSeguro.replace(/"/g, '&quot;');
                 const nombreBusqueda = normalizarTexto(nombre);
 
+                // Si el insumo (o este alumno por excepción) tiene rúbrica, en vez del campo de nota
+                // a mano se muestra un botón "Evaluar". Se deja un campo oculto con el mismo valor
+                // para que el guardado automático siga funcionando igual que siempre.
+                const rubricaDelAlumno = insumo ? obtenerRubricaEfectiva(claveDB, nombre) : null;
+                const controlNota = rubricaDelAlumno
+                    ? `<input type="hidden" value="${notaExistente}" data-estudiante="${nombreAttr}" class="nota-input">
+                       <button type="button" onclick="abrirModalEvaluarRubrica('${nombreAttr}')" class="w-14 bg-violet-50 border-2 border-violet-300 hover:bg-violet-100 text-violet-800 font-bold text-center text-xs rounded-xl py-1.5 px-1 transition flex-shrink-0 ${esNotaBaja ? 'nota-baja' : ''}" title="Evaluar con rúbrica: ${escapeHtml(rubricaDelAlumno)}" aria-label="Evaluar con rúbrica a ${nombreSeguro}">
+                            ${notaExistente !== "" ? parseFloat(notaExistente).toFixed(1) : '<i class="fa-solid fa-clipboard-check"></i>'}
+                       </button>`
+                    : `<input type="number" step="0.01" min="0" max="10" placeholder="0.00" value="${notaExistente}" data-estudiante="${nombreAttr}" oninput="validarNotaInput(this)" class="nota-input w-14 bg-gray-50 border-2 border-indigo-200 focus:border-indigo-600 focus:bg-white text-gray-900 font-bold text-center text-sm rounded-xl py-1 px-1 focus:outline-none transition flex-shrink-0 ${esNotaBaja ? 'nota-baja' : ''}" aria-label="Nota de ${nombreSeguro}">`;
+
                 const promedioInfo = calcularPromedioAlumno(nombre, asignatura, paralelo, trimestre);
                 let textoPromedio = '—';
                 let claseProm = 'text-gray-400';
@@ -1828,7 +2362,7 @@
                                         <i class="fa-solid ${infoEstado.icono}"></i> ${infoEstado.texto}
                                     </button>
 
-                                    <input type="number" step="0.01" min="0" max="10" placeholder="0.00" value="${notaExistente}" data-estudiante="${nombreAttr}" oninput="validarNotaInput(this)" class="nota-input w-14 bg-gray-50 border-2 border-indigo-200 focus:border-indigo-600 focus:bg-white text-gray-900 font-bold text-center text-sm rounded-xl py-1 px-1 focus:outline-none transition flex-shrink-0 ${esNotaBaja ? 'nota-baja' : ''}" aria-label="Nota de ${nombreSeguro}">
+                                    ${controlNota}
 
                                     <button type="button" onclick="eliminarEstudiante('${nombreAttr}')" class="text-gray-300 hover:text-rose-500 p-1 rounded-lg transition flex-shrink-0" title="Eliminar alumno" aria-label="Eliminar a ${nombreSeguro}">
                                         <i class="fa-solid fa-xmark text-base"></i>
@@ -1966,6 +2500,9 @@
                     notasGuardadasDB: notasGuardadas,
                     modoCalculoParalelo: modoCalculoParalelo,
                     categoriaInsumos: categoriaInsumos,
+                    rubricasPersonalizadas: rubricasPersonalizadas,
+                    rubricaAsignadaInsumo: rubricaAsignadaInsumo,
+                    rubricaExcepcionAlumno: rubricaExcepcionAlumno,
                     ultimoContextoUsado: { asignatura, paralelo, trimestre, insumo },
                     ultimaActualizacion: new Date().toLocaleString()
                 }, { merge: true })
