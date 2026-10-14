@@ -122,6 +122,14 @@
             background: linear-gradient(to top, #eef2ff, rgba(238,242,255,0));
             box-shadow: inset 0 3px 0 #4f46e5;
         }
+
+        /* ===== Selector de tipo de insumo (ventana) ===== */
+        .opcion-tipo { border: 2px solid #e5e7eb; background: #ffffff; }
+        .opcion-tipo .marca { display: none; }
+        .opcion-tipo.sel .marca { display: inline; }
+        .opcion-tipo[data-tipo="insumo"].sel { border-color: #4f46e5; background: #eef2ff; }
+        .opcion-tipo[data-tipo="proyecto"].sel { border-color: #059669; background: #ecfdf5; }
+        .opcion-tipo[data-tipo="examen"].sel { border-color: #d97706; background: #fffbeb; }
     </style>
 </head>
 <body class="pb-44">
@@ -233,6 +241,14 @@
                     </div>
                 </div>
             </div>
+            <!-- Estado de la nube: siempre visible en la parte superior, en todas las pantallas -->
+            <div id="barraSync" class="max-w-md mx-auto mt-2.5 flex items-center justify-between gap-2 text-[11px] font-semibold rounded-lg px-2.5 py-1 bg-white/10 text-indigo-100 transition-colors">
+                <span class="flex items-center gap-1.5 min-w-0">
+                    <span id="barraSyncPunto" class="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0"></span>
+                    <span id="barraSyncTexto" class="truncate">Conectando con la nube…</span>
+                </span>
+                <span id="barraSyncHora" class="hidden opacity-80 flex-shrink-0 whitespace-nowrap"></span>
+            </div>
         </header>
 
         <main id="vista-registro" class="max-w-md mx-auto p-4 space-y-4">
@@ -323,6 +339,9 @@
                             <button type="button" onclick="agregarNuevoInsumo()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" aria-label="Agregar insumo">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
+                            <button type="button" id="btnEditarInsumo" onclick="abrirModalInsumo('nombre')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" title="Editar el nombre del insumo" aria-label="Editar nombre del insumo">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
                             <button type="button" id="btnEditarCategoriaInsumo" onclick="editarCategoriaInsumoActual()" class="hidden bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-3 py-2.5 rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1 text-xs flex-shrink-0" title="Cambiar si este insumo es Insumo/Proyecto/Examen" aria-label="Editar categoría del insumo">
                                 <i class="fa-solid fa-tag"></i>
                             </button>
@@ -347,16 +366,25 @@
             <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 border-t-4 border-t-emerald-500 overflow-hidden">
                 <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-100 space-y-2.5">
                     <div class="flex justify-between items-center gap-2">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Nómina</span>
-                            <button type="button" onclick="agregarEstudianteManual()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded-lg text-[11px] shadow flex items-center gap-1 active:scale-95 transition flex-shrink-0">
-                                <i class="fa-solid fa-user-plus"></i> Alumno
-                            </button>
-                        </div>
+                        <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Nómina</span>
                         <div class="text-right flex-shrink-0">
                             <span id="totalAlumnos" class="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full block">0 Alumnos</span>
                             <span id="resumenAsistenciaContador" class="text-[10px] text-indigo-700 font-bold mt-0.5 block">asis: 0 · atr: 0 · falt: 0</span>
                         </div>
+                    </div>
+
+                    <!-- Acciones de la nómina -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="agregarEstudianteManual()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-[11px] shadow flex items-center justify-center gap-1 active:scale-95 transition" title="Agregar un alumno">
+                            <i class="fa-solid fa-user-plus"></i> Alumno
+                        </button>
+                        <label class="bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold py-2 rounded-xl text-[11px] shadow-sm flex items-center justify-center gap-1 active:scale-95 transition cursor-pointer" title="Cargar la nómina desde un archivo Excel">
+                            <i class="fa-solid fa-file-arrow-up"></i> Excel
+                            <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="cargarArchivoExcel(event)">
+                        </label>
+                        <button type="button" onclick="abrirModalTodaLista()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 rounded-xl text-[11px] shadow flex items-center justify-center gap-1 active:scale-95 transition" title="Poner la misma nota a todo el curso">
+                            <i class="fa-solid fa-list-check"></i> Toda la lista
+                        </button>
                     </div>
 
                     <!-- Buscador rápido por nombre -->
@@ -443,22 +471,6 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 border-t-4 border-t-emerald-500 p-4">
-                    <div class="flex items-start gap-3">
-                        <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
-                            <i class="fa-solid fa-file-arrow-up text-xl" aria-hidden="true"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <p class="text-sm font-bold text-gray-800">Cargar nómina desde Excel</p>
-                            <p class="text-[11px] text-gray-500 leading-snug">Sube el listado de estudiantes del paralelo que tengas seleccionado en Registro.</p>
-                        </div>
-                    </div>
-                    <label class="w-full mt-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer">
-                        <i class="fa-solid fa-upload"></i> Elegir archivo Excel
-                        <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="cargarArchivoExcel(event)">
-                    </label>
-                </div>
-
                 <button type="button" onclick="cerrarSesionGoogle()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-3 rounded-2xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition">
                     <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
                 </button>
@@ -481,8 +493,8 @@
                 <button type="button" data-vista="registro" onclick="cambiarVista('registro')" class="nav-item activa flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Registro" aria-current="page">
                     <i class="fa-solid fa-table-list text-lg"></i><span>Registro</span>
                 </button>
-                <button type="button" data-vista="resumen" onclick="cambiarVista('resumen')" class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Resumen anual">
-                    <i class="fa-solid fa-chart-column text-lg"></i><span>Resumen</span>
+                <button type="button" data-vista="resumen" onclick="cambiarVista('resumen')" class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Calificaciones">
+                    <i class="fa-solid fa-chart-column text-lg"></i><span>Calificaciones</span>
                 </button>
                 <button type="button" data-vista="reportes" onclick="cambiarVista('reportes')" class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Reportes">
                     <i class="fa-solid fa-file-excel text-lg"></i><span>Reportes</span>
@@ -630,6 +642,108 @@
         </div>
     </div>
 
+    <!-- ============ VENTANA: crear / editar insumo ============ -->
+    <div id="modalInsumo" class="fixed inset-0 z-[210] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl relative border-2 border-indigo-100 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center border-b pb-2 flex-shrink-0">
+                <h3 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1">
+                    <i class="fa-solid fa-pen-to-square text-indigo-600"></i> <span id="tituloModalInsumo">Nuevo insumo</span>
+                </h3>
+                <button onclick="cerrarModalInsumo()" class="text-gray-400 hover:text-rose-600 text-lg font-bold p-1" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 py-3 space-y-3">
+                <p id="ctxModalInsumo" class="text-[11px] text-gray-500"></p>
+
+                <div id="bloqueNombreInsumo">
+                    <label class="block text-[11px] font-bold text-indigo-900 uppercase mb-1">Nombre del insumo</label>
+                    <input type="text" id="inputNombreInsumo" maxlength="60" autocomplete="off" placeholder="Ej: Prueba 1, Proyecto final…" oninput="alEscribirNombreInsumo()" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarModalInsumo();}" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                    <p id="errorNombreInsumo" class="hidden text-[11px] font-bold text-rose-600 mt-1"></p>
+                </div>
+
+                <div id="bloqueTipoInsumo" class="hidden">
+                    <label class="block text-[11px] font-bold text-indigo-900 uppercase mb-1">Tipo de insumo</label>
+                    <div class="space-y-2">
+                        <button type="button" data-tipo="insumo" onclick="elegirTipoInsumo('insumo', true)" class="opcion-tipo w-full flex items-center gap-3 p-3 rounded-xl text-left transition">
+                            <span class="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-list-check"></i></span>
+                            <span class="flex-1"><span class="block text-xs font-bold text-gray-800">Insumo regular</span><span class="block text-[10px] text-gray-500">Forma parte del 70%</span></span>
+                            <i class="fa-solid fa-circle-check marca text-indigo-600"></i>
+                        </button>
+                        <button type="button" data-tipo="proyecto" onclick="elegirTipoInsumo('proyecto', true)" class="opcion-tipo w-full flex items-center gap-3 p-3 rounded-xl text-left transition">
+                            <span class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-diagram-project"></i></span>
+                            <span class="flex-1"><span class="block text-xs font-bold text-gray-800">Proyecto</span><span class="block text-[10px] text-gray-500">Vale el 15%</span></span>
+                            <i class="fa-solid fa-circle-check marca text-emerald-600"></i>
+                        </button>
+                        <button type="button" data-tipo="examen" onclick="elegirTipoInsumo('examen', true)" class="opcion-tipo w-full flex items-center gap-3 p-3 rounded-xl text-left transition">
+                            <span class="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-pen"></i></span>
+                            <span class="flex-1"><span class="block text-xs font-bold text-gray-800">Examen</span><span class="block text-[10px] text-gray-500">Vale el 15% (si hay examen de mejora, se promedian)</span></span>
+                            <i class="fa-solid fa-circle-check marca text-amber-600"></i>
+                        </button>
+                    </div>
+                    <p id="notaTipoAuto" class="text-[10px] text-gray-400 mt-1.5">Si el nombre dice “proyecto” o “examen”, se elige solo; puedes cambiarlo.</p>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t flex-shrink-0 flex gap-2">
+                <button onclick="cerrarModalInsumo()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl text-xs transition">Cancelar</button>
+                <button id="btnConfirmarModalInsumo" onclick="confirmarModalInsumo()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition">Crear insumo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ VENTANA: misma nota para toda la lista ============ -->
+    <div id="modalTodaLista" class="fixed inset-0 z-[210] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl relative border-2 border-violet-100 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center border-b pb-2 flex-shrink-0">
+                <h3 class="text-xs font-bold text-violet-900 uppercase flex items-center gap-1">
+                    <i class="fa-solid fa-list-check text-violet-600"></i> Misma nota para toda la lista
+                </h3>
+                <button onclick="cerrarModalTodaLista()" class="text-gray-400 hover:text-rose-600 text-lg font-bold p-1" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="overflow-y-auto flex-1 py-3 space-y-3">
+                <p id="ctxTodaLista" class="text-[11px] text-gray-500"></p>
+                <div>
+                    <label class="block text-[11px] font-bold text-violet-900 uppercase mb-1">Nota (0 a 10)</label>
+                    <input type="number" id="inputNotaTodaLista" min="0" max="10" step="0.01" inputmode="decimal" placeholder="Ej: 10" onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarTodaLista();}" class="w-full bg-gray-50 border border-violet-200 text-violet-950 rounded-xl p-2.5 font-bold text-center text-lg focus:ring-2 focus:ring-violet-500 focus:outline-none shadow-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="flex items-start gap-2 p-2.5 rounded-xl border border-violet-200 cursor-pointer">
+                        <input type="radio" name="modoTodaLista" value="vacios" checked class="mt-0.5">
+                        <span class="text-xs text-gray-700"><b>Solo a quienes aún no tienen nota</b><br><span id="textoConteoVacios" class="text-[10px] text-gray-500"></span></span>
+                    </label>
+                    <label class="flex items-start gap-2 p-2.5 rounded-xl border border-gray-200 cursor-pointer">
+                        <input type="radio" name="modoTodaLista" value="todos" class="mt-0.5">
+                        <span class="text-xs text-gray-700"><b>A todos</b> (reemplaza las notas que ya pusiste)<br><span id="textoConteoTodos" class="text-[10px] text-gray-500"></span></span>
+                    </label>
+                </div>
+                <p class="text-[10px] text-gray-400">Después puedes corregir las excepciones una por una. Tendrás unos segundos para deshacer.</p>
+            </div>
+            <div class="pt-3 border-t flex-shrink-0 flex gap-2">
+                <button onclick="cerrarModalTodaLista()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl text-xs transition">Cancelar</button>
+                <button onclick="aplicarTodaLista()" class="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-bold py-2.5 rounded-xl text-xs transition">Aplicar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ VENTANA: calificaciones por estudiante ============ -->
+    <div id="modalPorEstudiante" class="fixed inset-0 z-[210] hidden flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border-2 border-indigo-100 flex flex-col max-h-[92vh]">
+            <div class="flex justify-between items-center border-b px-5 pt-4 pb-2 flex-shrink-0">
+                <h3 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1">
+                    <i class="fa-solid fa-user-graduate text-indigo-600"></i> Calificaciones por estudiante
+                </h3>
+                <button onclick="cerrarModalPorEstudiante()" class="text-gray-400 hover:text-rose-600 text-lg font-bold p-1" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="cuerpoPorEstudiante" class="overflow-y-auto flex-1 px-5 py-3"></div>
+        </div>
+    </div>
+
     <!-- Contenedor de notificaciones tipo toast (reemplaza a alert() para mensajes informativos) -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[300] flex flex-col gap-2 items-center w-full px-4 pointer-events-none"></div>
 
@@ -695,6 +809,9 @@
             }, duracion);
         }
 
+        // Hora de la última sincronización correcta (se muestra en la franja superior)
+        let ultimaSyncHora = null;
+
         // Refleja el estado real de sincronización con la nube (antes era un texto fijo)
         function actualizarEstadoSync(estado) {
             const badge = document.getElementById('sync-status');
@@ -711,6 +828,25 @@
 
             // Puntito en el icono "Cuenta" de la barra inferior, para ver el estado de la nube
             // sin entrar a esa pestaña (rojo = no se pudo sincronizar).
+            // Franja de estado en la parte superior de todas las pantallas
+            const barra = document.getElementById('barraSync');
+            if (barra) {
+                if (estado === 'sincronizado') {
+                    ultimaSyncHora = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+                }
+                const cfgBarra = {
+                    sincronizado: { texto: 'Todo sincronizado', fondo: 'bg-emerald-500/30 text-emerald-50', punto: 'bg-emerald-400' },
+                    sincronizando: { texto: 'Sincronizando…', fondo: 'bg-amber-400/30 text-amber-50', punto: 'bg-amber-300 animate-pulse' },
+                    error: { texto: 'Sin sincronizar · guardado en este dispositivo', fondo: 'bg-rose-500/40 text-white', punto: 'bg-rose-300 animate-pulse' },
+                    local: { texto: 'Guardado en este dispositivo', fondo: 'bg-white/10 text-indigo-100', punto: 'bg-gray-300' }
+                }[estado] || { texto: 'Guardado en este dispositivo', fondo: 'bg-white/10 text-indigo-100', punto: 'bg-gray-300' };
+                barra.className = `max-w-md mx-auto mt-2.5 flex items-center justify-between gap-2 text-[11px] font-semibold rounded-lg px-2.5 py-1 transition-colors ${cfgBarra.fondo}`;
+                document.getElementById('barraSyncPunto').className = `w-2 h-2 rounded-full flex-shrink-0 ${cfgBarra.punto}`;
+                document.getElementById('barraSyncTexto').innerText = cfgBarra.texto;
+                const horaEl = document.getElementById('barraSyncHora');
+                if (ultimaSyncHora) { horaEl.innerText = `Última: ${ultimaSyncHora}`; horaEl.classList.remove('hidden'); }
+            }
+
             const punto = document.getElementById('puntoSyncNav');
             if (punto) {
                 const colores = { sincronizado: 'bg-emerald-500', sincronizando: 'bg-amber-400', error: 'bg-rose-500 animate-pulse', local: 'bg-gray-400' };
@@ -1380,38 +1516,6 @@
 
         // Cambia la categoría de un insumo ya existente. Solo cambia esta etiqueta:
         // NUNCA toca ni borra las notas guardadas, solo cómo se agrupan en el cálculo.
-        function editarCategoriaInsumoActual() {
-            const asignatura = document.getElementById('selectAsignatura').value;
-            const paralelo = document.getElementById('selectParalelo').value;
-            const trimestre = document.getElementById('selectTrimestre').value;
-            const insumo = document.getElementById('selectInsumos').value;
-            if (!paralelo || !insumo) return;
-
-            const claveKey = claveInsumos(asignatura, paralelo, trimestre);
-            const categoriaActual = obtenerCategoriaInsumo(claveKey, insumo);
-            const etiquetas = { insumo: 'Insumo regular', proyecto: 'Proyecto', examen: 'Examen' };
-            const valorPorDefecto = categoriaActual === 'proyecto' ? '2' : categoriaActual === 'examen' ? '3' : '1';
-
-            let respuesta = prompt(
-                `Insumo: "${insumo}"\nCategoría actual: ${etiquetas[categoriaActual]}\n\n` +
-                `¿Cuál es la categoría correcta?\n1 = Insumo regular (70%)\n2 = Proyecto (15%)\n3 = Examen (15%)`,
-                valorPorDefecto
-            );
-            if (respuesta === null) return; // canceló, no cambia nada
-
-            respuesta = respuesta.trim();
-            const nuevaCategoria = (respuesta === '2') ? 'proyecto' : (respuesta === '3') ? 'examen' : 'insumo';
-
-            if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
-            categoriaInsumos[claveKey][insumo] = nuevaCategoria;
-            guardarLS('categoriaInsumos', categoriaInsumos);
-
-            actualizarUICategoriaInsumo();
-            actualizarUIRubricaInsumo();
-            actualizarPromediosPantalla();
-            mostrarToast(`"${insumo}" ahora es: ${etiquetas[nuevaCategoria]}. Las notas no cambiaron.`, 'exito', 4500);
-        }
-
         // ===================================================================
         // RÚBRICAS DE EVALUACIÓN: opcional por insumo. Un insumo sin rúbrica
         // asignada sigue pidiendo la nota a mano, exactamente como siempre.
@@ -2051,52 +2155,225 @@
             cargarEstudiantesYNotas();
         }
 
-        function agregarNuevoInsumo() {
-            const paralelo = document.getElementById('selectParalelo').value;
+        // ===================================================================
+        // VENTANA DE INSUMO: crear, editar el nombre o elegir el tipo.
+        // Reemplaza a las alertas del navegador (prompt) que se usaban antes.
+        // ===================================================================
+        let modoModalInsumo = 'crear';      // 'crear' | 'nombre' | 'tipo'
+        let tipoElegidoModal = 'insumo';    // 'insumo' | 'proyecto' | 'examen'
+        let tipoElegidoManual = false;      // true si la persona eligió el tipo a mano (ya no se autodetecta)
+
+        function agregarNuevoInsumo() { abrirModalInsumo('crear'); }
+        function editarCategoriaInsumoActual() { abrirModalInsumo('tipo'); }
+
+        function elegirTipoInsumo(tipo, manual = false) {
+            tipoElegidoModal = tipo;
+            if (manual) tipoElegidoManual = true;
+            document.querySelectorAll('#bloqueTipoInsumo .opcion-tipo').forEach(b => {
+                b.classList.toggle('sel', b.dataset.tipo === tipo);
+            });
+        }
+
+        function mostrarErrorNombreInsumo(msg) {
+            const e = document.getElementById('errorNombreInsumo');
+            e.innerText = msg;
+            e.classList.remove('hidden');
+        }
+
+        // Mientras se escribe el nombre al crear, si dice "proyecto" o "examen" el tipo se elige solo
+        function alEscribirNombreInsumo() {
+            document.getElementById('errorNombreInsumo').classList.add('hidden');
+            if (modoModalInsumo !== 'crear' || tipoElegidoManual) return;
+            elegirTipoInsumo(detectarCategoriaPorNombreInsumo(document.getElementById('inputNombreInsumo').value), false);
+        }
+
+        function abrirModalInsumo(modo) {
             const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
             const trimestre = document.getElementById('selectTrimestre').value;
-            if (!paralelo || !asignatura) {
-                mostrarToast("Selecciona una asignatura y un paralelo primero.", 'error');
+            const insumoActual = document.getElementById('selectInsumos').value;
+
+            if (!paralelo || !asignatura) { mostrarToast('Selecciona una asignatura y un paralelo primero.', 'error'); return; }
+            if (modo !== 'crear' && !insumoActual) { mostrarToast('Selecciona un insumo primero.', 'error'); return; }
+            const ponderado = obtenerModoParalelo(paralelo) === 'ponderado';
+            if (modo === 'tipo' && !ponderado) { mostrarToast('El tipo de insumo solo aplica en paralelos en modo Ponderado.', 'info'); return; }
+
+            modoModalInsumo = modo;
+            tipoElegidoManual = false;
+            const input = document.getElementById('inputNombreInsumo');
+            document.getElementById('errorNombreInsumo').classList.add('hidden');
+            document.getElementById('bloqueNombreInsumo').classList.toggle('hidden', modo === 'tipo');
+            document.getElementById('bloqueTipoInsumo').classList.toggle('hidden', !(ponderado && (modo === 'crear' || modo === 'tipo')));
+            document.getElementById('notaTipoAuto').classList.toggle('hidden', modo !== 'crear');
+
+            const ctx = `${asignatura} · ${paralelo} · ${trimestre}`;
+            if (modo === 'crear') {
+                document.getElementById('tituloModalInsumo').innerText = 'Nuevo insumo';
+                document.getElementById('ctxModalInsumo').innerText = ctx;
+                document.getElementById('btnConfirmarModalInsumo').innerText = 'Crear insumo';
+                input.value = '';
+                elegirTipoInsumo('insumo');
+            } else if (modo === 'nombre') {
+                document.getElementById('tituloModalInsumo').innerText = 'Editar insumo';
+                document.getElementById('ctxModalInsumo').innerText = ctx;
+                document.getElementById('btnConfirmarModalInsumo').innerText = 'Guardar cambios';
+                input.value = insumoActual;
+            } else {
+                document.getElementById('tituloModalInsumo').innerText = 'Tipo de insumo';
+                document.getElementById('ctxModalInsumo').innerText = `Insumo: ${insumoActual} · ${ctx}`;
+                document.getElementById('btnConfirmarModalInsumo').innerText = 'Guardar tipo';
+                elegirTipoInsumo(obtenerCategoriaInsumo(claveInsumos(asignatura, paralelo, trimestre), insumoActual));
+            }
+
+            document.getElementById('modalInsumo').classList.remove('hidden');
+            if (modo !== 'tipo') setTimeout(() => { input.focus(); input.select(); }, 60);
+        }
+
+        function cerrarModalInsumo() {
+            document.getElementById('modalInsumo').classList.add('hidden');
+        }
+
+        function confirmarModalInsumo() {
+            if (modoModalInsumo === 'tipo') { guardarTipoInsumo(); return; }
+            const nombre = document.getElementById('inputNombreInsumo').value.trim();
+            if (!nombre) { mostrarErrorNombreInsumo('Escribe un nombre para el insumo.'); return; }
+            if (modoModalInsumo === 'crear') crearInsumoDesdeModal(nombre);
+            else renombrarInsumoDesdeModal(nombre);
+        }
+
+        const ETIQUETAS_TIPO_INSUMO = { insumo: 'Insumo regular (70%)', proyecto: 'Proyecto (15%)', examen: 'Examen (15%)' };
+
+        function crearInsumoDesdeModal(nombre) {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const ponderado = obtenerModoParalelo(paralelo) === 'ponderado';
+
+            const listaActual = obtenerListaInsumos(asignatura, paralelo, trimestre);
+            if (listaActual.some(x => normalizarTexto(x) === normalizarTexto(nombre))) {
+                mostrarErrorNombreInsumo('Ya existe un insumo con ese nombre en este trimestre.');
                 return;
             }
 
-            const nuevoInsumo = prompt(`Escribe el nombre del nuevo insumo o actividad para ${asignatura} - ${paralelo} (${trimestre}):`);
-            if (nuevoInsumo && nuevoInsumo.trim() !== "") {
-                const limpio = nuevoInsumo.trim();
-                const claveKey = claveInsumos(asignatura, paralelo, trimestre);
-                if (!listaInsumosPersonalizados[claveKey]) {
-                    // Este trimestre pasa a tener su propia lista independiente, partiendo
-                    // de lo que ya se veía hasta ahora (nunca desde cero) para no perder nada.
-                    listaInsumosPersonalizados[claveKey] = [...obtenerListaInsumos(asignatura, paralelo, trimestre)];
-                }
-                if (!listaInsumosPersonalizados[claveKey].includes(limpio)) {
-                    listaInsumosPersonalizados[claveKey].push(limpio);
-                    guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
-                }
-
-                // En paralelos "ponderados", se reconoce automáticamente la categoría por el
-                // nombre del insumo (si contiene "proyecto" o "examen"); el resto es Insumo regular.
-                if (obtenerModoParalelo(paralelo) === 'ponderado') {
-                    const categoria = detectarCategoriaPorNombreInsumo(limpio);
-                    if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
-                    categoriaInsumos[claveKey][limpio] = categoria;
-                    guardarLS('categoriaInsumos', categoriaInsumos);
-                    if (categoria !== 'insumo') {
-                        mostrarToast(
-                            `"${limpio}" reconocido como ${categoria === 'proyecto' ? 'Proyecto (15%)' : 'Examen (15%)'}.`,
-                            'info', 3500
-                        );
-                    }
-                }
-
-                const claveDB = `${asignatura}_${paralelo}_${trimestre}_${limpio}`;
-                if (!notasGuardadas[claveDB]) {
-                    notasGuardadas[claveDB] = { fecha: obtenerFechaActualFormato(), notas: {}, asistencia: {}, observaciones: {}, evidencias: {} };
-                    guardarLS('notasGuardadasDB', notasGuardadas);
-                }
-
-                renderizarSelectInsumos(limpio);
+            const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+            if (!listaInsumosPersonalizados[claveKey]) {
+                // Este trimestre pasa a tener su propia lista independiente, partiendo
+                // de lo que ya se veía hasta ahora (nunca desde cero) para no perder nada.
+                listaInsumosPersonalizados[claveKey] = [...listaActual];
             }
+            listaInsumosPersonalizados[claveKey].push(nombre);
+            guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+
+            if (ponderado) {
+                if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
+                categoriaInsumos[claveKey][nombre] = tipoElegidoModal;
+                guardarLS('categoriaInsumos', categoriaInsumos);
+            }
+
+            const claveDB = `${asignatura}_${paralelo}_${trimestre}_${nombre}`;
+            if (!notasGuardadas[claveDB]) {
+                notasGuardadas[claveDB] = { fecha: obtenerFechaActualFormato(), notas: {}, asistencia: {}, observaciones: {}, evidencias: {} };
+                guardarLS('notasGuardadasDB', notasGuardadas);
+            }
+
+            cerrarModalInsumo();
+            renderizarSelectInsumos(nombre);
+            mostrarToast(
+                ponderado ? `Insumo "${nombre}" creado como ${ETIQUETAS_TIPO_INSUMO[tipoElegidoModal]}.` : `Insumo "${nombre}" creado.`,
+                'exito', 3500
+            );
+        }
+
+        // Cambia el nombre de un insumo ya creado, moviendo con él sus notas, tipo y rúbrica.
+        // Solo afecta al trimestre actual (los demás trimestres son independientes).
+        function renombrarInsumoDesdeModal(nuevo) {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const viejo = document.getElementById('selectInsumos').value;
+            const ponderado = obtenerModoParalelo(paralelo) === 'ponderado';
+
+            if (nuevo === viejo) { cerrarModalInsumo(); return; }
+
+            const listaActual = obtenerListaInsumos(asignatura, paralelo, trimestre);
+            if (listaActual.some(x => x !== viejo && normalizarTexto(x) === normalizarTexto(nuevo))) {
+                mostrarErrorNombreInsumo('Ya existe un insumo con ese nombre en este trimestre.');
+                return;
+            }
+
+            // 1) Se guarda en segundo plano lo que haya en pantalla, antes de mover nada
+            recolectarDatosFormulario(contextoRenderizado, false);
+
+            // 2) Lista de insumos de este trimestre (se "gradúa" si aún dependía del formato viejo compartido)
+            const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+            if (!listaInsumosPersonalizados[claveKey]) listaInsumosPersonalizados[claveKey] = [...listaActual];
+            const arr = listaInsumosPersonalizados[claveKey];
+            const idx = arr.indexOf(viejo);
+            if (idx === -1) { mostrarErrorNombreInsumo('No se encontró el insumo a editar.'); return; }
+            arr[idx] = nuevo; // conserva la posición
+            guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
+
+            // 3) Tipo (Insumo/Proyecto/Examen): se conserva; si ahora el nombre dice proyecto/examen
+            //    y era insumo regular, se actualiza solo.
+            let avisoTipo = '';
+            if (ponderado) {
+                let tipo = obtenerCategoriaInsumo(claveKey, viejo);
+                if (tipo === 'insumo') {
+                    const detectado = detectarCategoriaPorNombreInsumo(nuevo);
+                    if (detectado !== 'insumo') { tipo = detectado; avisoTipo = ` Reconocido como ${ETIQUETAS_TIPO_INSUMO[tipo]}.`; }
+                }
+                if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
+                delete categoriaInsumos[claveKey][viejo];
+                categoriaInsumos[claveKey][nuevo] = tipo;
+                guardarLS('categoriaInsumos', categoriaInsumos);
+            }
+
+            // 4) Notas, fecha, asistencia, observaciones, evidencias, rúbrica asignada y excepciones
+            const dbVieja = claveDBDesde(asignatura, paralelo, trimestre, viejo);
+            const dbNueva = claveDBDesde(asignatura, paralelo, trimestre, nuevo);
+            if (notasGuardadas[dbVieja] !== undefined) {
+                notasGuardadas[dbNueva] = notasGuardadas[dbVieja];
+                delete notasGuardadas[dbVieja];
+                guardarLS('notasGuardadasDB', notasGuardadas);
+            }
+            if (rubricaAsignadaInsumo[dbVieja] !== undefined) {
+                rubricaAsignadaInsumo[dbNueva] = rubricaAsignadaInsumo[dbVieja];
+                delete rubricaAsignadaInsumo[dbVieja];
+                guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
+            }
+            if (rubricaExcepcionAlumno[dbVieja] !== undefined) {
+                rubricaExcepcionAlumno[dbNueva] = rubricaExcepcionAlumno[dbVieja];
+                delete rubricaExcepcionAlumno[dbVieja];
+                guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+            }
+
+            // 5) Para que el guardado automático use el nombre nuevo y no recree el viejo
+            if (contextoRenderizado.insumo === viejo) {
+                contextoRenderizado = { ...contextoRenderizado, insumo: nuevo };
+            }
+
+            cerrarModalInsumo();
+            renderizarSelectInsumos(nuevo);
+            mostrarToast(`Insumo renombrado a "${nuevo}".${avisoTipo} Las notas se conservaron.`, 'exito', 4500);
+        }
+
+        function guardarTipoInsumo() {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trimestre = document.getElementById('selectTrimestre').value;
+            const insumo = document.getElementById('selectInsumos').value;
+            if (!paralelo || !insumo) return;
+
+            const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+            if (!categoriaInsumos[claveKey]) categoriaInsumos[claveKey] = {};
+            categoriaInsumos[claveKey][insumo] = tipoElegidoModal;
+            guardarLS('categoriaInsumos', categoriaInsumos);
+
+            cerrarModalInsumo();
+            actualizarUICategoriaInsumo();
+            actualizarUIRubricaInsumo();
+            actualizarPromediosPantalla();
+            mostrarToast(`"${insumo}" ahora es ${ETIQUETAS_TIPO_INSUMO[tipoElegidoModal]}. Las notas no cambiaron.`, 'exito', 4500);
         }
 
         function eliminarInsumoActual() {
@@ -3383,7 +3660,7 @@
             // --- Encabezado del curso ---
             const tarjetaCurso = `
                 <div class="bg-white rounded-2xl shadow-sm border border-blue-200 border-t-4 border-t-blue-500 p-4">
-                    <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">Resumen anual</p>
+                    <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">Calificaciones</p>
                     <p class="text-sm font-bold text-gray-800 mt-0.5">${escapeHtml(asignatura)} · ${escapeHtml(paralelo)}</p>
                     <p class="text-[11px] text-gray-500 mt-0.5">${modoTxt} · con lo calificado hasta hoy. Para cambiar de curso, hazlo en Registro.</p>
                 </div>`;
@@ -3449,7 +3726,7 @@
                         : `<p class="text-[10px] font-bold text-emerald-600">↑ ${f.tendencia.toFixed(2)}</p>`;
                 }
                 return `
-                    <div class="py-2.5 border-b border-indigo-50 last:border-none">
+                    <div class="py-2.5 border-b border-indigo-50 last:border-none cursor-pointer active:bg-indigo-50/60" role="button" tabindex="0" onclick="abrirDetalleDesdeResumen(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalleDesdeResumen(${idx});}">
                         <div class="flex justify-between items-start gap-2">
                             <div class="min-w-0">
                                 <p class="text-xs font-bold text-gray-800 uppercase leading-snug break-words">${idx + 1}. ${escapeHtml(f.nombre)}</p>
@@ -3466,12 +3743,330 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-indigo-200 border-t-4 border-t-indigo-500 overflow-hidden">
                     <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-100">
                         <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">Por estudiante</p>
-                        <p class="text-[10px] text-gray-500 mt-0.5">El símbolo ~ indica un valor provisional (faltan trimestres o calificaciones).</p>
+                        <p class="text-[10px] text-gray-500 mt-0.5">Toca un estudiante para ver sus insumos. El símbolo ~ indica un valor provisional.</p>
                     </div>
                     <div class="px-4">${filasEst}</div>
                 </div>`;
 
-            cont.innerHTML = tarjetaCurso + tarjetasCifras + tarjetaBarras + tarjetaEstudiantes;
+            const botonPorEstudiante = `
+                <button type="button" onclick="abrirModalPorEstudiante()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl text-xs shadow-md flex items-center justify-center gap-2 active:scale-95 transition">
+                    <i class="fa-solid fa-user-graduate"></i> Por estudiante: ver insumos y qué le falta
+                </button>`;
+            nombresUltimoResumen = datos.filas.map(f => f.nombre);
+            cont.innerHTML = tarjetaCurso + botonPorEstudiante + tarjetasCifras + tarjetaBarras + tarjetaEstudiantes;
+        }
+
+        // ===================================================================
+        // TODA LA LISTA: poner la misma nota a todo el curso (en el insumo actual)
+        // ===================================================================
+        function entradasNotaEditables() {
+            return [...document.querySelectorAll('#listaEstudiantes input.nota-input[type="number"]')];
+        }
+
+        function abrirModalTodaLista() {
+            const paralelo = document.getElementById('selectParalelo').value;
+            const insumo = document.getElementById('selectInsumos').value;
+            if (!paralelo || !insumo) { mostrarToast('Selecciona un paralelo y un insumo primero.', 'error'); return; }
+
+            const inputs = entradasNotaEditables();
+            if (inputs.length === 0) {
+                const hayRubrica = document.querySelectorAll('#listaEstudiantes input.nota-input[type="hidden"]').length > 0;
+                mostrarToast(hayRubrica ? 'Este insumo se califica con rúbrica: usa "Evaluar" en cada alumno.' : 'No hay estudiantes en la lista.', 'error', 4500);
+                return;
+            }
+            const vacios = inputs.filter(i => i.value === '').length;
+            document.getElementById('ctxTodaLista').innerText = `${insumo} · ${inputs.length} estudiante${inputs.length === 1 ? '' : 's'}`;
+            document.getElementById('textoConteoVacios').innerText = `${vacios} estudiante${vacios === 1 ? '' : 's'} sin nota`;
+            document.getElementById('textoConteoTodos').innerText = `${inputs.length} estudiante${inputs.length === 1 ? '' : 's'} en total`;
+            document.querySelector('input[name="modoTodaLista"][value="vacios"]').checked = true;
+            const campo = document.getElementById('inputNotaTodaLista');
+            campo.value = '';
+            document.getElementById('modalTodaLista').classList.remove('hidden');
+            setTimeout(() => campo.focus(), 60);
+        }
+
+        function cerrarModalTodaLista() {
+            document.getElementById('modalTodaLista').classList.add('hidden');
+        }
+
+        function aplicarTodaLista() {
+            const nota = parseFloat(document.getElementById('inputNotaTodaLista').value);
+            if (isNaN(nota) || nota < 0 || nota > 10) { mostrarToast('Escribe una nota entre 0 y 10.', 'error'); return; }
+            const modo = document.querySelector('input[name="modoTodaLista"]:checked').value;
+            const valor = Math.round(nota * 100) / 100;
+            const claveDB = claveDBInsumoActual();
+
+            const previos = {}; // nombre -> valor anterior ('' si no tenía), para poder deshacer
+            let cambiados = 0;
+            entradasNotaEditables().forEach(inp => {
+                if (modo === 'vacios' && inp.value !== '') return;
+                previos[inp.getAttribute('data-estudiante')] = inp.value;
+                inp.value = String(valor);
+                validarNotaInput(inp);
+                cambiados++;
+            });
+
+            if (cambiados === 0) {
+                mostrarToast('Todos ya tienen nota. Elige "A todos" si quieres reemplazarlas.', 'info', 4500);
+                return;
+            }
+
+            recolectarDatosFormulario(contextoRenderizado, false); // queda guardado en el dispositivo
+            actualizarPromediosPantalla();
+            cerrarModalTodaLista();
+            mostrarToastAccion(
+                `Nota ${valor} aplicada a ${cambiados} estudiante${cambiados === 1 ? '' : 's'}.`,
+                'Deshacer', () => deshacerTodaLista(claveDB, previos), 8000
+            );
+        }
+
+        function deshacerTodaLista(claveDB, previos) {
+            if (claveDBInsumoActual() === claveDB) {
+                // Sigue en el mismo insumo: se restauran los campos en pantalla y se guarda
+                document.querySelectorAll('#listaEstudiantes input.nota-input[type="number"]').forEach(inp => {
+                    const n = inp.getAttribute('data-estudiante');
+                    if (Object.prototype.hasOwnProperty.call(previos, n)) { inp.value = previos[n]; validarNotaInput(inp); }
+                });
+                recolectarDatosFormulario(contextoRenderizado, false);
+                actualizarPromediosPantalla();
+            } else if (notasGuardadas[claveDB]) {
+                // Ya cambió de insumo: se restaura directamente en lo guardado
+                Object.keys(previos).forEach(n => {
+                    const v = parseFloat(previos[n]);
+                    if (previos[n] === '' || isNaN(v)) delete notasGuardadas[claveDB].notas[n];
+                    else notasGuardadas[claveDB].notas[n] = v;
+                });
+                guardarLS('notasGuardadasDB', notasGuardadas);
+            }
+            mostrarToast('Se restauraron las notas anteriores.', 'info');
+        }
+
+        // ===================================================================
+        // VENTANA "POR ESTUDIANTE": insumos calificados y pendientes (para atender a padres)
+        // Solo lee datos guardados; no modifica nada.
+        // ===================================================================
+        let listaEstudiantesModal = [];
+        let estudianteDetalle = null;
+        let trimestreDetalle = '1er Trimestre'; // '1er Trimestre' | '2do Trimestre' | '3er Trimestre' | 'anual'
+        let nombresUltimoResumen = [];
+
+        function abrirDetalleDesdeResumen(idx) {
+            abrirModalPorEstudiante(nombresUltimoResumen[idx]);
+        }
+
+        function abrirModalPorEstudiante(nombre = null) {
+            recolectarDatosFormulario(contextoRenderizado, false); // refleja lo último que se escribió
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            if (!asignatura || !paralelo) { mostrarToast('Selecciona una asignatura y un paralelo en Registro.', 'error'); return; }
+
+            listaEstudiantesModal = ordenarNomina(estudiantesData[paralelo] || []);
+            if (listaEstudiantesModal.length === 0) { mostrarToast('No hay estudiantes registrados en este paralelo.', 'error'); return; }
+
+            trimestreDetalle = document.getElementById('selectTrimestre').value || '1er Trimestre';
+            document.getElementById('modalPorEstudiante').classList.remove('hidden');
+            if (nombre) mostrarDetalleEstudiante(nombre); else mostrarListaEstudiantesModal();
+        }
+
+        function cerrarModalPorEstudiante() {
+            document.getElementById('modalPorEstudiante').classList.add('hidden');
+            estudianteDetalle = null;
+        }
+
+        function mostrarListaEstudiantesModal() {
+            estudianteDetalle = null;
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const filas = listaEstudiantesModal.map((n, i) => `
+                <button type="button" class="fila-est-modal w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-indigo-100 hover:bg-indigo-50 text-left transition" data-b="${escapeHtml(normalizarTexto(n))}" onclick="mostrarDetalleEstudianteIdx(${i})">
+                    <span class="w-6 h-6 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xs flex-shrink-0">${i + 1}</span>
+                    <span class="flex-1 text-xs font-bold text-gray-800 uppercase leading-snug break-words">${escapeHtml(n)}</span>
+                    <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
+                </button>`).join('');
+            document.getElementById('cuerpoPorEstudiante').innerHTML = `
+                <p class="text-[11px] text-gray-500 mb-2">${escapeHtml(asignatura)} · ${escapeHtml(paralelo)}. Elige un estudiante para ver sus insumos y qué le falta.</p>
+                <div class="relative mb-3">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" aria-hidden="true"></i>
+                    <input type="text" id="inputBuscarEstudianteModal" oninput="filtrarListaEstudiantesModal()" placeholder="Buscar estudiante por nombre..." class="w-full bg-white border border-gray-200 focus:border-indigo-400 rounded-xl pl-8 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200 transition">
+                </div>
+                <div id="listaEstudiantesModal" class="space-y-2">${filas}</div>
+                <p id="sinResultadosModalEst" class="hidden text-center text-gray-400 text-xs py-6">No se encontró ningún alumno con ese nombre.</p>`;
+        }
+
+        function filtrarListaEstudiantesModal() {
+            const termino = normalizarTexto(document.getElementById('inputBuscarEstudianteModal').value.trim());
+            const filas = document.querySelectorAll('#listaEstudiantesModal .fila-est-modal');
+            let visibles = 0;
+            filas.forEach(f => {
+                const coincide = termino === '' || (f.dataset.b || '').includes(termino);
+                f.classList.toggle('hidden', !coincide);
+                if (coincide) visibles++;
+            });
+            document.getElementById('sinResultadosModalEst').classList.toggle('hidden', visibles > 0);
+        }
+
+        function mostrarDetalleEstudianteIdx(i) { mostrarDetalleEstudiante(listaEstudiantesModal[i]); }
+
+        function mostrarDetalleEstudiante(nombre) {
+            estudianteDetalle = nombre;
+            renderizarDetalleEstudiante();
+        }
+
+        function elegirTrimestreDetalle(t) {
+            trimestreDetalle = t;
+            renderizarDetalleEstudiante();
+        }
+
+        // Datos de un estudiante en un trimestre: insumos con su nota (o pendiente) y el promedio
+        function datosDetalleEstudiante(nombre, trimestre) {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const claveKey = claveInsumos(asignatura, paralelo, trimestre);
+            const ponderado = obtenerModoParalelo(paralelo) === 'ponderado';
+            const insumos = obtenerListaInsumos(asignatura, paralelo, trimestre);
+
+            const filas = insumos.map(ins => {
+                const claveDB = claveDBDesde(asignatura, paralelo, trimestre, ins);
+                const nota = notasGuardadas[claveDB]?.notas?.[nombre];
+                const tiene = nota !== undefined && nota !== '' && !isNaN(parseFloat(nota));
+                return {
+                    insumo: ins,
+                    categoria: ponderado ? obtenerCategoriaInsumo(claveKey, ins) : null,
+                    nota: tiene ? parseFloat(nota) : null
+                };
+            });
+            const sinCrear = [];
+            if (ponderado && filas.length > 0) {
+                const cats = new Set(filas.map(f => f.categoria));
+                if (!cats.has('insumo')) sinCrear.push('Insumos');
+                if (!cats.has('proyecto')) sinCrear.push('Proyecto');
+                if (!cats.has('examen')) sinCrear.push('Examen');
+            }
+            return {
+                filas, ponderado, sinCrear,
+                pendientes: filas.filter(f => f.nota === null).map(f => f.insumo),
+                info: calcularPromedioAlumno(nombre, asignatura, paralelo, trimestre)
+            };
+        }
+
+        function htmlDetalleTrimestre(nombre, trimestre) {
+            const d = datosDetalleEstudiante(nombre, trimestre);
+            if (d.filas.length === 0) {
+                return `<div class="text-center text-gray-400 text-xs py-8"><i class="fa-solid fa-clipboard-list text-2xl mb-2 block text-gray-300"></i>Aún no hay insumos creados en este trimestre.</div>`;
+            }
+            const tipos = {
+                insumo: ['Insumo', 'bg-indigo-100 text-indigo-700'],
+                proyecto: ['Proyecto', 'bg-emerald-100 text-emerald-700'],
+                examen: ['Examen', 'bg-amber-100 text-amber-700']
+            };
+            const filasHtml = d.filas.map(f => {
+                const tipo = d.ponderado
+                    ? `<span class="inline-block ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-md align-middle ${tipos[f.categoria][1]}">${tipos[f.categoria][0]}</span>` : '';
+                const nota = f.nota === null
+                    ? `<span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">Pendiente</span>`
+                    : `<span class="text-sm font-black ${f.nota < 7 ? 'text-rose-600' : 'text-emerald-700'}">${f.nota.toFixed(2)}</span>`;
+                return `<tr class="border-b border-indigo-50 last:border-none">
+                    <td class="py-2.5 pr-2 text-xs font-bold text-gray-800 break-words">${escapeHtml(f.insumo)}${tipo}</td>
+                    <td class="py-2.5 text-right whitespace-nowrap">${nota}</td></tr>`;
+            }).join('');
+
+            const info = d.info;
+            let promTxt = '—', promCls = 'text-gray-400', letra = '';
+            if (info && info.total !== null) {
+                const prov = !!info.parcial;
+                promTxt = `${prov ? '~' : ''}${info.total.toFixed(2)}`;
+                promCls = prov ? 'text-blue-600' : (info.total < 7 ? 'text-rose-600' : 'text-emerald-700');
+                letra = pillLetra(letraCualitativa(info.total));
+            }
+            let desglose = '';
+            if (d.ponderado && info) {
+                const f2 = v => (v === null || v === undefined) ? '—' : v.toFixed(2);
+                desglose = `<div class="flex flex-wrap gap-1.5 mt-2">
+                    <span class="bg-indigo-50 text-indigo-700 rounded-lg px-2 py-0.5 text-[10px] font-bold">Insumos 70%: ${f2(info.pReg)}</span>
+                    <span class="bg-emerald-50 text-emerald-700 rounded-lg px-2 py-0.5 text-[10px] font-bold">Proyecto 15%: ${f2(info.pProy)}</span>
+                    <span class="bg-amber-50 text-amber-700 rounded-lg px-2 py-0.5 text-[10px] font-bold">Examen 15%: ${f2(info.pExa)}</span></div>`;
+            }
+
+            const aviso = d.pendientes.length > 0
+                ? `<div class="rounded-xl border border-amber-200 bg-amber-50 p-3 mt-3"><p class="text-[11px] font-black text-amber-800 uppercase tracking-wide">Le falta</p>
+                    <p class="text-xs text-amber-900 mt-0.5">${d.pendientes.map(escapeHtml).join(' · ')}</p></div>`
+                : `<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 mt-3"><p class="text-xs font-bold text-emerald-800"><i class="fa-solid fa-circle-check"></i> Tiene todos los insumos calificados.</p></div>`;
+            const sinCrear = d.sinCrear.length > 0
+                ? `<p class="text-[10px] text-gray-400 mt-2">Aún sin crear en este trimestre: ${d.sinCrear.join(', ')}.</p>` : '';
+
+            return `
+                <table class="w-full">
+                    <thead><tr class="border-b border-indigo-100"><th class="text-left pb-1.5 text-[10px] font-black text-indigo-900 uppercase tracking-wide">Insumo</th><th class="text-right pb-1.5 text-[10px] font-black text-indigo-900 uppercase tracking-wide">Nota</th></tr></thead>
+                    <tbody>${filasHtml}</tbody>
+                </table>
+                <div class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-3 mt-3">
+                    <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">Promedio del trimestre</p>
+                    <p class="text-2xl font-black mt-0.5 leading-tight ${promCls}">${promTxt} ${letra}</p>
+                    ${desglose}
+                </div>
+                ${aviso}${sinCrear}`;
+        }
+
+        function htmlDetalleAnual(nombre) {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const trims = TRIMESTRES_RESUMEN.map(t => {
+                const d = datosDetalleEstudiante(nombre, t);
+                const total = d.filas.length;
+                const calificados = d.filas.filter(f => f.nota !== null).length;
+                const valor = (d.info && d.info.total !== null) ? { v: d.info.total, parcial: !!d.info.parcial } : null;
+                return { t, total, calificados, valor };
+            });
+            const conNota = trims.filter(x => x.valor);
+            const anual = conNota.length ? conNota.reduce((a, x) => a + x.valor.v, 0) / conNota.length : null;
+            const provisional = conNota.length < 3 || conNota.some(x => x.valor.parcial);
+            const tendencia = conNota.length >= 2 ? conNota[conNota.length - 1].valor.v - conNota[0].valor.v : null;
+            const nombres = ['1er trimestre', '2do trimestre', '3er trimestre'];
+
+            const filas = trims.map((x, i) => {
+                const val = x.valor
+                    ? `<span class="text-sm font-black ${x.valor.parcial ? 'text-blue-600' : (x.valor.v < 7 ? 'text-rose-600' : 'text-emerald-700')}">${x.valor.parcial ? '~' : ''}${x.valor.v.toFixed(2)}</span> ${pillLetra(letraCualitativa(x.valor.v))}`
+                    : `<span class="text-xs text-gray-400">Sin notas</span>`;
+                const prog = x.total === 0 ? 'Sin insumos creados' : `${x.calificados} de ${x.total} insumo${x.total === 1 ? '' : 's'} calificado${x.calificados === 1 ? '' : 's'}`;
+                return `<div class="flex items-center justify-between gap-2 py-2.5 border-b border-indigo-50 last:border-none">
+                    <div><p class="text-xs font-bold text-gray-800">${nombres[i]}</p><p class="text-[10px] text-gray-500">${prog}</p></div>
+                    <div class="text-right">${val}</div></div>`;
+            }).join('');
+
+            const colorAnual = anual === null ? 'text-gray-400' : (provisional ? 'text-blue-600' : (anual < 7 ? 'text-rose-600' : 'text-emerald-700'));
+            let tend = '';
+            if (tendencia !== null && Math.abs(tendencia) >= 0.05) {
+                tend = tendencia < 0
+                    ? `<span class="text-xs font-bold text-rose-500 ml-2">↓ ${Math.abs(tendencia).toFixed(2)}</span>`
+                    : `<span class="text-xs font-bold text-emerald-600 ml-2">↑ ${tendencia.toFixed(2)}</span>`;
+            }
+            return `
+                <div class="rounded-2xl p-4 text-white shadow-md bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-800">
+                    <p class="text-[11px] font-bold uppercase tracking-wide text-indigo-100">Promedio anual</p>
+                    <p class="text-3xl font-black mt-1 leading-none">${anual === null ? '—' : (provisional ? '~' : '') + anual.toFixed(2)} ${anual !== null ? pillLetra(letraCualitativa(anual), true) : ''}${tend.replace('text-rose-500', 'text-rose-200').replace('text-emerald-600', 'text-emerald-200')}</p>
+                    ${provisional && anual !== null ? '<p class="text-[10px] text-indigo-200 mt-1.5">El símbolo ~ indica un valor provisional (faltan trimestres o calificaciones).</p>' : ''}
+                </div>
+                <div class="mt-3 rounded-2xl border border-indigo-100 px-3">${filas}</div>`;
+        }
+
+        function renderizarDetalleEstudiante() {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const nombre = estudianteDetalle;
+            const pestanas = [['1er Trimestre', '1er'], ['2do Trimestre', '2do'], ['3er Trimestre', '3er'], ['anual', 'Año']];
+            const tabs = pestanas.map(([clave, texto]) => {
+                const activa = trimestreDetalle === clave;
+                return `<button type="button" onclick="elegirTrimestreDetalle('${clave}')" class="px-2 py-2 rounded-xl text-xs font-bold border transition ${activa ? 'bg-indigo-600 border-indigo-600 text-white shadow' : 'bg-gray-50 border-indigo-100 text-indigo-700 hover:bg-indigo-50'}">${texto}</button>`;
+            }).join('');
+            const contenido = trimestreDetalle === 'anual' ? htmlDetalleAnual(nombre) : htmlDetalleTrimestre(nombre, trimestreDetalle);
+
+            document.getElementById('cuerpoPorEstudiante').innerHTML = `
+                <button type="button" onclick="mostrarListaEstudiantesModal()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 mb-2"><i class="fa-solid fa-chevron-left text-[10px]"></i> Otro estudiante</button>
+                <p class="text-base font-black text-gray-800 uppercase leading-snug break-words">${escapeHtml(nombre)}</p>
+                <p class="text-[11px] text-gray-500 mb-3">${escapeHtml(asignatura)} · ${escapeHtml(paralelo)}</p>
+                <div class="grid grid-cols-4 gap-2 mb-3">${tabs}</div>
+                ${contenido}`;
+            document.getElementById('cuerpoPorEstudiante').scrollTop = 0;
         }
 
         function actualizarContextoReportes() {
