@@ -110,9 +110,21 @@
         .splash-subtitulo { color: #fcd34d; }
         .splash-dots-wrap { margin-top: 1.25rem; display: flex; gap: 0.4rem; }
         .splash-dot { width: 0.5rem; height: 0.5rem; background: rgba(255,255,255,0.7); border-radius: 9999px; }
+
+        /* ===== Navegación inferior ===== */
+        #barraNavegacion { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        /* La barra de Guardar queda justo encima de la navegación (56px + borde de 2px + zona segura) */
+        #barraGuardar { bottom: calc(3.5rem + 2px + env(safe-area-inset-bottom, 0px)); }
+        .nav-item { color: #9ca3af; }
+        .nav-item:hover { color: #6366f1; }
+        .nav-item.activa {
+            color: #4338ca;
+            background: linear-gradient(to top, #eef2ff, rgba(238,242,255,0));
+            box-shadow: inset 0 3px 0 #4f46e5;
+        }
     </style>
 </head>
-<body class="pb-32">
+<body class="pb-44">
 
     <!-- Pantalla de bienvenida animada: usa solo CSS propio (arriba), por eso se ve
          bien desde el primer instante sin esperar a que carguen Tailwind/Firebase/etc.,
@@ -220,37 +232,10 @@
                         </span>
                     </div>
                 </div>
-                <div class="flex flex-col gap-1.5 flex-shrink-0">
-                    <button onclick="descargarExcel()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1 active:scale-95 transition" title="Exporta el insumo actual, incluye observaciones">
-                        <i class="fa-solid fa-file-excel text-sm"></i> Exportar Excel
-                    </button>
-                    <button onclick="descargarReporteTrimestralCompleto()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1 active:scale-95 transition" title="Genera el reporte institucional de los 3 trimestres + cuadro final anual">
-                        <i class="fa-solid fa-file-shield text-sm"></i> Reporte Trimestral
-                    </button>
-                </div>
             </div>
         </header>
 
-        <main class="max-w-md mx-auto p-4 space-y-4">
-
-            <!-- Barra compacta de usuario + accesos rápidos (antes eran 2 tarjetas separadas) -->
-            <div class="bg-white rounded-2xl shadow-sm border border-indigo-100 border-t-4 border-t-indigo-400 p-3 flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 min-w-0">
-                    <i class="fa-solid fa-circle-user text-indigo-400 text-lg flex-shrink-0" aria-hidden="true"></i>
-                    <span id="usuario-nombre" class="text-xs font-bold text-indigo-900 truncate"></span>
-                </div>
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                    <span id="sync-status" class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">☁️ Sincronizado</span>
-                    <label class="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 cursor-pointer p-2 rounded-lg transition" title="Subir nómina desde Excel">
-                        <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
-                        <span class="sr-only">Subir nómina desde Excel</span>
-                        <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="cargarArchivoExcel(event)">
-                    </label>
-                    <button onclick="cerrarSesionGoogle()" class="text-gray-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition" title="Cerrar sesión" aria-label="Cerrar sesión">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                    </button>
-                </div>
-            </div>
+        <main id="vista-registro" class="max-w-md mx-auto p-4 space-y-4">
 
             <!-- Configuración de clase: asignatura, paralelo, trimestre, fecha e insumo (unificados y colapsables) -->
             <div class="bg-white rounded-2xl shadow-sm border border-blue-200 border-t-4 border-t-blue-500 overflow-hidden">
@@ -393,8 +378,95 @@
 
         </main>
 
-        <!-- Barra inferior compacta para guardar -->
-        <div class="fixed bottom-0 left-0 right-0 px-4 py-2.5 barra-inferior-segura bg-white/95 backdrop-blur border-t-2 border-indigo-200 shadow-lg z-40">
+        <!-- ===== VISTA: RESUMEN (solo lectura; se llena desde renderizarResumen) ===== -->
+        <section id="vista-resumen" class="hidden">
+            <div id="contenidoResumen" class="max-w-md mx-auto p-4 space-y-4"></div>
+        </section>
+
+        <!-- ===== VISTA: REPORTES (los dos botones de Excel que antes estaban en el encabezado) ===== -->
+        <section id="vista-reportes" class="hidden">
+            <div class="max-w-md mx-auto p-4 space-y-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-blue-200 border-t-4 border-t-blue-500 p-4">
+                    <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">Reportes</p>
+                    <p id="ctxReportes" class="text-sm font-bold text-gray-800 mt-0.5"></p>
+                    <p class="text-[11px] text-gray-500 mt-0.5">Para cambiar de curso o trimestre, hazlo en Registro.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 border-t-4 border-t-emerald-500 p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-file-excel text-xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-gray-800">Exportar Excel</p>
+                            <p class="text-[11px] text-gray-500 leading-snug">Notas por insumo, promedio, observaciones y control de asistencia del trimestre que tengas seleccionado.</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="descargarExcel()" class="w-full mt-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i class="fa-solid fa-download"></i> Descargar Excel
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-indigo-200 border-t-4 border-t-indigo-500 p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-file-shield text-xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-gray-800">Reporte Trimestral</p>
+                            <p class="text-[11px] text-gray-500 leading-snug">Formato institucional: hojas T1, T2, T3 y cuadro final anual, con fórmulas.</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="descargarReporteTrimestralCompleto()" class="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i class="fa-solid fa-download"></i> Generar Reporte Trimestral
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== VISTA: CUENTA (lo que antes era la barra de usuario) ===== -->
+        <section id="vista-cuenta" class="hidden">
+            <div class="max-w-md mx-auto p-4 space-y-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-indigo-100 border-t-4 border-t-indigo-400 p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-circle-user text-3xl" aria-hidden="true"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">Mi cuenta</p>
+                            <span id="usuario-nombre" class="text-sm font-bold text-gray-800 truncate block"></span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between mt-3 pt-3 border-t border-indigo-50">
+                        <span class="text-[11px] text-gray-500">Estado de la nube</span>
+                        <span id="sync-status" class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">☁️ Sincronizado</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 border-t-4 border-t-emerald-500 p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-file-arrow-up text-xl" aria-hidden="true"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-gray-800">Cargar nómina desde Excel</p>
+                            <p class="text-[11px] text-gray-500 leading-snug">Sube el listado de estudiantes del paralelo que tengas seleccionado en Registro.</p>
+                        </div>
+                    </div>
+                    <label class="w-full mt-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer">
+                        <i class="fa-solid fa-upload"></i> Elegir archivo Excel
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="cargarArchivoExcel(event)">
+                    </label>
+                </div>
+
+                <button type="button" onclick="cerrarSesionGoogle()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-3 rounded-2xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition">
+                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
+                </button>
+            </div>
+        </section>
+
+        <!-- Barra inferior compacta para guardar (solo se ve en Registro; queda justo encima de la navegación) -->
+        <div id="barraGuardar" class="fixed left-0 right-0 px-4 py-2 bg-white/95 backdrop-blur border-t-2 border-indigo-200 shadow-lg z-40">
             <div class="max-w-md mx-auto flex items-center justify-between gap-3">
                 <span id="indicadorGuardado" class="text-[10px] text-gray-400 font-semibold leading-tight">Sin cambios guardados aún</span>
                 <button onclick="guardarNotasMemoria()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md flex justify-center items-center gap-2 text-sm active:scale-95 transition flex-shrink-0">
@@ -402,6 +474,28 @@
                 </button>
             </div>
         </div>
+
+        <!-- Barra de navegación inferior -->
+        <nav id="barraNavegacion" class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t-2 border-indigo-200 shadow-lg" aria-label="Navegación principal">
+            <div class="max-w-md mx-auto flex h-14">
+                <button type="button" data-vista="registro" onclick="cambiarVista('registro')" class="nav-item activa flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Registro" aria-current="page">
+                    <i class="fa-solid fa-table-list text-lg"></i><span>Registro</span>
+                </button>
+                <button type="button" data-vista="resumen" onclick="cambiarVista('resumen')" class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Resumen anual">
+                    <i class="fa-solid fa-chart-column text-lg"></i><span>Resumen</span>
+                </button>
+                <button type="button" data-vista="reportes" onclick="cambiarVista('reportes')" class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Reportes">
+                    <i class="fa-solid fa-file-excel text-lg"></i><span>Reportes</span>
+                </button>
+                <button type="button" data-vista="cuenta" onclick="cambiarVista('cuenta')" class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Cuenta">
+                    <span class="relative inline-block">
+                        <i class="fa-solid fa-circle-user text-lg"></i>
+                        <span id="puntoSyncNav" class="hidden absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full border border-white"></span>
+                    </span>
+                    <span>Cuenta</span>
+                </button>
+            </div>
+        </nav>
     </div>
 
     <!-- MODAL PARA VER EVIDENCIA FOTOGRÁFICA -->
@@ -614,6 +708,14 @@
             const cfg = estados[estado] || estados.local;
             badge.className = `text-[10px] font-bold px-2 py-1 rounded-lg transition-colors ${cfg.clase}`;
             badge.innerText = cfg.texto;
+
+            // Puntito en el icono "Cuenta" de la barra inferior, para ver el estado de la nube
+            // sin entrar a esa pestaña (rojo = no se pudo sincronizar).
+            const punto = document.getElementById('puntoSyncNav');
+            if (punto) {
+                const colores = { sincronizado: 'bg-emerald-500', sincronizando: 'bg-amber-400', error: 'bg-rose-500 animate-pulse', local: 'bg-gray-400' };
+                punto.className = `absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full border border-white ${colores[estado] || colores.local}`;
+            }
         }
 
         // Quita tildes/acentos y pasa a minúsculas, para que la búsqueda encuentre "jose" al escribir "José"
@@ -3177,6 +3279,232 @@
                 console.error("Error al generar el reporte trimestral:", err);
                 mostrarToast("No se pudo generar el reporte. Intenta nuevamente.", 'error', 5000);
             }
+        }
+
+        // ===================================================================
+        // NAVEGACIÓN INFERIOR Y RESUMEN ANUAL
+        // "Registro" es la pantalla de siempre (no se modifica). Las otras vistas
+        // solo muestran información o agrupan botones que ya existían.
+        // ===================================================================
+
+        // Escala cualitativa: misma lógica que la fórmula del Excel institucional
+        // (ver formulaLetraCualitativa). Se mantiene idéntica para que pantalla y Excel coincidan.
+        function letraCualitativa(valor) {
+            const v = parseFloat(valor);
+            if (valor === '' || valor === null || valor === undefined || isNaN(v)) return 'NE';
+            if (v >= 9.5) return 'A+';
+            if (v >= 8.5) return 'A-';
+            if (v >= 7.5) return 'B+';
+            if (v >= 6.5) return 'B-';
+            const entero = Math.trunc(v);
+            if (entero === 6) return 'C+';
+            if (entero === 5) return 'C-';
+            if (entero === 4) return 'D+';
+            if (entero === 3) return 'D-';
+            if (entero === 2) return 'E+';
+            if (entero === 1) return 'E-';
+            return 'NE';
+        }
+
+        function pillLetra(letra, sobreOscuro = false) {
+            const g = letra.charAt(0);
+            let clase;
+            if (sobreOscuro) clase = 'bg-white/25 text-white';
+            else if (letra === 'NE') clase = 'bg-gray-100 text-gray-500';
+            else if (g === 'A') clase = 'bg-emerald-100 text-emerald-800';
+            else if (g === 'B') clase = 'bg-indigo-100 text-indigo-800';
+            else if (g === 'C') clase = 'bg-amber-100 text-amber-800';
+            else clase = 'bg-rose-100 text-rose-800';
+            return `<span class="inline-block text-[10px] font-black px-1.5 py-0.5 rounded-md align-middle ${clase}">${letra}</span>`;
+        }
+
+        const TRIMESTRES_RESUMEN = ['1er Trimestre', '2do Trimestre', '3er Trimestre'];
+
+        // Calcula (sin escribir nada) el resumen del curso seleccionado a partir de lo ya guardado.
+        function calcularResumenCurso(asignatura, paralelo) {
+            const lista = ordenarNomina(estudiantesData[paralelo] || []);
+            const promedio = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+            const filas = lista.map(nombre => {
+                const trims = TRIMESTRES_RESUMEN.map(t => {
+                    const info = calcularPromedioAlumno(nombre, asignatura, paralelo, t);
+                    return (info && info.total !== null) ? { valor: info.total, parcial: !!info.parcial } : null;
+                });
+                const conNota = trims.filter(Boolean);
+                const anual = promedio(conNota.map(x => x.valor));
+                // Provisional = faltan trimestres por calificar o alguno está incompleto (modo ponderado)
+                const provisional = conNota.length < 3 || conNota.some(x => x.parcial);
+                const tendencia = conNota.length >= 2 ? conNota[conNota.length - 1].valor - conNota[0].valor : null;
+                return { nombre, trims, anual, provisional, tendencia };
+            });
+
+            const anuales = filas.filter(f => f.anual !== null).map(f => f.anual);
+            const porTrimestre = TRIMESTRES_RESUMEN.map((t, i) =>
+                promedio(filas.map(f => f.trims[i]).filter(Boolean).map(x => x.valor))
+            );
+
+            return {
+                filas,
+                totalEstudiantes: lista.length,
+                promedioMateria: promedio(anuales),
+                bajoSiete: anuales.filter(v => v < 7).length,
+                porTrimestre
+            };
+        }
+
+        function estadoVacioResumen(icono, texto) {
+            return `<div class="bg-white rounded-2xl shadow-sm border border-blue-200 border-t-4 border-t-blue-500 p-8 text-center text-gray-400 text-sm">
+                <i class="fa-solid ${icono} text-2xl mb-2 block text-gray-300"></i>${texto}</div>`;
+        }
+
+        function renderizarResumen() {
+            // Igual que al cambiar de insumo: se guarda en segundo plano lo que haya en pantalla,
+            // para que el resumen refleje exactamente lo último que escribiste.
+            recolectarDatosFormulario(contextoRenderizado, false);
+
+            const cont = document.getElementById('contenidoResumen');
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+
+            if (!asignatura || !paralelo) {
+                cont.innerHTML = estadoVacioResumen('fa-layer-group', 'Selecciona una asignatura y un paralelo en Registro.');
+                return;
+            }
+            const datos = calcularResumenCurso(asignatura, paralelo);
+            if (datos.totalEstudiantes === 0) {
+                cont.innerHTML = estadoVacioResumen('fa-user-group', `No hay estudiantes registrados en ${escapeHtml(paralelo)}.`);
+                return;
+            }
+
+            const modoTxt = obtenerModoParalelo(paralelo) === 'ponderado' ? 'Modo Ponderado' : 'Modo Simple';
+            const fmt = (v) => v === null ? '—' : v.toFixed(2);
+            const colorValor = (v) => v === null ? 'text-gray-400' : (v < 7 ? 'text-rose-600' : 'text-emerald-700');
+
+            // --- Encabezado del curso ---
+            const tarjetaCurso = `
+                <div class="bg-white rounded-2xl shadow-sm border border-blue-200 border-t-4 border-t-blue-500 p-4">
+                    <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">Resumen anual</p>
+                    <p class="text-sm font-bold text-gray-800 mt-0.5">${escapeHtml(asignatura)} · ${escapeHtml(paralelo)}</p>
+                    <p class="text-[11px] text-gray-500 mt-0.5">${modoTxt} · con lo calificado hasta hoy. Para cambiar de curso, hazlo en Registro.</p>
+                </div>`;
+
+            // --- Tarjetas de cifras ---
+            const prom = datos.promedioMateria;
+            const letraProm = letraCualitativa(prom);
+            const bajo = datos.bajoSiete;
+            const tarjetasCifras = `
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="col-span-2 rounded-2xl p-4 text-white shadow-md bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-800">
+                        <p class="text-[11px] font-bold uppercase tracking-wide text-indigo-100">Promedio de la materia</p>
+                        <p class="text-3xl font-black mt-1 leading-none">${fmt(prom)} ${prom !== null ? pillLetra(letraProm, true) : ''}</p>
+                    </div>
+                    <div class="rounded-2xl p-3.5 border shadow-sm ${bajo > 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}">
+                        <p class="text-[11px] font-bold uppercase tracking-wide ${bajo > 0 ? 'text-rose-700' : 'text-emerald-700'}">Bajo 7</p>
+                        <p class="text-2xl font-black mt-1 leading-none ${bajo > 0 ? 'text-rose-700' : 'text-emerald-700'}">${bajo}</p>
+                    </div>
+                    <div class="rounded-2xl p-3.5 border border-emerald-200 bg-emerald-50 shadow-sm">
+                        <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Estudiantes</p>
+                        <p class="text-2xl font-black mt-1 leading-none text-emerald-800">${datos.totalEstudiantes}</p>
+                    </div>
+                </div>`;
+
+            // --- Barras por trimestre ---
+            const nombresTrim = ['1er trimestre', '2do trimestre', '3er trimestre'];
+            const barras = datos.porTrimestre.map((v, i) => {
+                const ancho = v === null ? 0 : Math.max(0, Math.min(100, v * 10));
+                const relleno = (v !== null && v < 7) ? 'from-rose-400 to-rose-500' : 'from-indigo-500 to-emerald-500';
+                return `
+                    <div>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-bold text-gray-700">${nombresTrim[i]}</span>
+                            <span class="font-black ${colorValor(v)}">${v === null ? 'Sin notas' : fmt(v)} ${v !== null ? pillLetra(letraCualitativa(v)) : ''}</span>
+                        </div>
+                        <div class="h-2.5 rounded-full bg-gray-100 mt-1.5 overflow-hidden">
+                            <div class="h-full rounded-full bg-gradient-to-r ${relleno}" style="width:${ancho}%"></div>
+                        </div>
+                    </div>`;
+            }).join('');
+            const tarjetaBarras = `
+                <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 border-t-4 border-t-emerald-500 p-4">
+                    <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide mb-3">Cómo ha ido en cada trimestre</p>
+                    <div class="space-y-3.5">${barras}</div>
+                </div>`;
+
+            // --- Ficha por estudiante ---
+            const filasEst = datos.filas.map((f, idx) => {
+                const chips = f.trims.map((t, i) => {
+                    const txt = t === null ? '—' : `${t.parcial ? '~' : ''}${t.valor.toFixed(2)}`;
+                    const clase = t === null ? 'bg-gray-100 text-gray-400' : (t.parcial ? 'bg-blue-50 text-blue-700' : 'bg-indigo-50 text-indigo-700');
+                    return `<span class="${clase} rounded-lg px-1.5 py-0.5 text-[10px] font-bold">T${i + 1} ${txt}</span>`;
+                }).join('');
+
+                let colorAnual = colorValor(f.anual);
+                if (f.anual !== null && f.provisional) colorAnual = 'text-blue-600';
+                const textoAnual = f.anual === null ? '—' : `${f.provisional ? '~' : ''}${f.anual.toFixed(2)}`;
+
+                let tend = '';
+                if (f.tendencia !== null && Math.abs(f.tendencia) >= 0.05) {
+                    tend = f.tendencia < 0
+                        ? `<p class="text-[10px] font-bold text-rose-500">↓ ${Math.abs(f.tendencia).toFixed(2)}</p>`
+                        : `<p class="text-[10px] font-bold text-emerald-600">↑ ${f.tendencia.toFixed(2)}</p>`;
+                }
+                return `
+                    <div class="py-2.5 border-b border-indigo-50 last:border-none">
+                        <div class="flex justify-between items-start gap-2">
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-gray-800 uppercase leading-snug break-words">${idx + 1}. ${escapeHtml(f.nombre)}</p>
+                                <div class="flex flex-wrap gap-1 mt-1">${chips}</div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <p class="text-base font-black leading-tight ${colorAnual}">${textoAnual} ${f.anual !== null ? pillLetra(letraCualitativa(f.anual)) : ''}</p>
+                                ${tend}
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+            const tarjetaEstudiantes = `
+                <div class="bg-white rounded-2xl shadow-sm border border-indigo-200 border-t-4 border-t-indigo-500 overflow-hidden">
+                    <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-100">
+                        <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">Por estudiante</p>
+                        <p class="text-[10px] text-gray-500 mt-0.5">El símbolo ~ indica un valor provisional (faltan trimestres o calificaciones).</p>
+                    </div>
+                    <div class="px-4">${filasEst}</div>
+                </div>`;
+
+            cont.innerHTML = tarjetaCurso + tarjetasCifras + tarjetaBarras + tarjetaEstudiantes;
+        }
+
+        function actualizarContextoReportes() {
+            const ctx = document.getElementById('ctxReportes');
+            if (!ctx) return;
+            const asig = document.getElementById('selectAsignatura').value || '—';
+            const par = document.getElementById('selectParalelo').value || 'Sin paralelo';
+            const tri = document.getElementById('selectTrimestre').value || '';
+            ctx.innerText = `${asig} · ${par} · ${tri}`;
+        }
+
+        let vistaActual = 'registro';
+        function cambiarVista(nombre) {
+            const vistas = ['registro', 'resumen', 'reportes', 'cuenta'];
+            if (!vistas.includes(nombre)) return;
+
+            // Al salir de Registro se guarda en silencio lo que haya en pantalla (igual que al cambiar de insumo).
+            if (vistaActual === 'registro' && nombre !== 'registro') {
+                recolectarDatosFormulario(contextoRenderizado, false);
+            }
+            vistaActual = nombre;
+
+            vistas.forEach(v => document.getElementById(`vista-${v}`).classList.toggle('hidden', v !== nombre));
+            document.getElementById('barraGuardar').classList.toggle('hidden', nombre !== 'registro');
+            document.querySelectorAll('#barraNavegacion .nav-item').forEach(b => {
+                const activa = b.dataset.vista === nombre;
+                b.classList.toggle('activa', activa);
+                b.setAttribute('aria-current', activa ? 'page' : 'false');
+            });
+
+            if (nombre === 'resumen') renderizarResumen();
+            if (nombre === 'reportes') actualizarContextoReportes();
+            window.scrollTo({ top: 0 });
         }
 
         // Al abrir la app, en vez de mostrar siempre el primer paralelo de la lista,
