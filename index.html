@@ -469,6 +469,10 @@
                         <span class="text-[11px] text-gray-500">Estado de la nube</span>
                         <span id="sync-status" class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">☁️ Sincronizado</span>
                     </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <span class="text-[11px] text-gray-500">Versión de la app</span>
+                        <span class="text-[11px] font-bold text-indigo-700">v4</span>
+                    </div>
                 </div>
 
                 <button type="button" onclick="cerrarSesionGoogle()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-3 rounded-2xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition">
@@ -741,6 +745,35 @@
                 </button>
             </div>
             <div id="cuerpoPorEstudiante" class="overflow-y-auto flex-1 px-5 py-3"></div>
+        </div>
+    </div>
+
+    <!-- ============ VENTANA DE TEXTO (asignatura, paralelo, estudiante) ============ -->
+    <div id="modalTexto" class="fixed inset-0 z-[220] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl relative border-2 border-indigo-100 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center border-b pb-2 flex-shrink-0">
+                <h3 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1">
+                    <i id="iconoModalTexto" class="fa-solid fa-plus text-indigo-600"></i> <span id="tituloModalTexto"></span>
+                </h3>
+                <button onclick="cerrarModalTexto()" class="text-gray-400 hover:text-rose-600 text-lg font-bold p-1" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="overflow-y-auto flex-1 py-3 space-y-3">
+                <p id="ctxModalTexto" class="hidden text-[11px] text-gray-500"></p>
+                <div>
+                    <label id="etiquetaModalTexto" class="block text-[11px] font-bold text-indigo-900 uppercase mb-1"></label>
+                    <input type="text" id="inputModalTexto" maxlength="80" autocomplete="off" oninput="document.getElementById('errorModalTexto').classList.add('hidden')" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarModalTexto(false);}" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                    <p id="errorModalTexto" class="hidden text-[11px] font-bold text-rose-600 mt-1"></p>
+                </div>
+                <div id="extraModalTexto"></div>
+                <p id="notaModalTexto" class="hidden text-[10px] text-gray-400"></p>
+            </div>
+            <div class="pt-3 border-t flex-shrink-0 flex gap-2">
+                <button onclick="cerrarModalTexto()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl text-xs transition">Cancelar</button>
+                <button id="btnOtroModalTexto" onclick="confirmarModalTexto(true)" class="hidden flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold py-2.5 rounded-xl text-xs transition">Agregar y otro</button>
+                <button id="btnConfirmarModalTexto" onclick="confirmarModalTexto(false)" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition">Agregar</button>
+            </div>
         </div>
     </div>
 
@@ -1158,22 +1191,78 @@
             renderizarSelectParalelos();
         }
 
+        // ===================================================================
+        // VENTANA DE TEXTO: una sola ventana reutilizable (asignatura, paralelo, estudiante).
+        // Reemplaza las alertas del navegador (prompt). onConfirmar(valor) devuelve un texto
+        // si hay un error (la ventana sigue abierta) o nada si todo salió bien.
+        // ===================================================================
+        let configModalTexto = null;
+
+        function abrirModalTexto(cfg) {
+            configModalTexto = cfg;
+            document.getElementById('tituloModalTexto').innerText = cfg.titulo;
+            document.getElementById('iconoModalTexto').className = `fa-solid ${cfg.icono || 'fa-plus'} text-indigo-600`;
+            const ctx = document.getElementById('ctxModalTexto');
+            ctx.innerText = cfg.contexto || '';
+            ctx.classList.toggle('hidden', !cfg.contexto);
+            document.getElementById('etiquetaModalTexto').innerText = cfg.etiqueta;
+            const input = document.getElementById('inputModalTexto');
+            input.placeholder = cfg.placeholder || '';
+            input.value = cfg.valorInicial || '';
+            document.getElementById('errorModalTexto').classList.add('hidden');
+            document.getElementById('extraModalTexto').innerHTML = cfg.extraHTML || '';
+            const nota = document.getElementById('notaModalTexto');
+            nota.innerText = cfg.nota || '';
+            nota.classList.toggle('hidden', !cfg.nota);
+            document.getElementById('btnConfirmarModalTexto').innerText = cfg.textoBoton || 'Aceptar';
+            document.getElementById('btnOtroModalTexto').classList.toggle('hidden', !cfg.permitirOtro);
+            document.getElementById('modalTexto').classList.remove('hidden');
+            setTimeout(() => { input.focus(); input.select(); }, 60);
+        }
+
+        function cerrarModalTexto() {
+            document.getElementById('modalTexto').classList.add('hidden');
+            configModalTexto = null;
+        }
+
+        function mostrarErrorModalTexto(msg) {
+            const e = document.getElementById('errorModalTexto');
+            e.innerText = msg;
+            e.classList.remove('hidden');
+        }
+
+        function confirmarModalTexto(agregarOtro) {
+            if (!configModalTexto) return;
+            const input = document.getElementById('inputModalTexto');
+            const valor = input.value.trim();
+            if (!valor) { mostrarErrorModalTexto(configModalTexto.mensajeVacio || 'Escribe un valor.'); return; }
+            const resultado = configModalTexto.onConfirmar(valor);
+            if (typeof resultado === 'string') { mostrarErrorModalTexto(resultado); return; }
+            if (agregarOtro && configModalTexto.permitirOtro) { input.value = ''; input.focus(); return; }
+            cerrarModalTexto();
+        }
+
         function crearNuevaAsignatura() {
-            const nombreAsig = prompt("Escribe el nombre de la nueva asignatura (Ej: Computación, Inglés):");
-            if (nombreAsig && nombreAsig.trim() !== "") {
-                const limpio = nombreAsig.trim();
-                if (!listaAsignaturas.includes(limpio)) {
-                    listaAsignaturas.push(limpio);
+            abrirModalTexto({
+                titulo: 'Nueva asignatura', icono: 'fa-book',
+                etiqueta: 'Nombre de la asignatura', placeholder: 'Ej: Computación, Inglés',
+                textoBoton: 'Crear asignatura', mensajeVacio: 'Escribe el nombre de la asignatura.',
+                onConfirmar: (nombre) => {
+                    if (listaAsignaturas.some(a => normalizarTexto(a) === normalizarTexto(nombre))) {
+                        return 'Ya existe una asignatura con ese nombre.';
+                    }
+                    listaAsignaturas.push(nombre);
                     guardarLS('listaAsignaturas', listaAsignaturas);
+                    if (!asignaturasParalelos[nombre]) {
+                        asignaturasParalelos[nombre] = [];
+                        guardarLS('asignaturasParalelos', asignaturasParalelos);
+                    }
+                    renderizarSelectAsignaturas(nombre);
+                    renderizarSelectInsumos();
+                    cargarEstudiantesYNotas();
+                    mostrarToast(`Asignatura "${nombre}" creada.`, 'exito');
                 }
-                if (!asignaturasParalelos[limpio]) {
-                    asignaturasParalelos[limpio] = [];
-                    guardarLS('asignaturasParalelos', asignaturasParalelos);
-                }
-                renderizarSelectAsignaturas(limpio);
-                renderizarSelectInsumos();
-                cargarEstudiantesYNotas();
-            }
+            });
         }
 
         function eliminarAsignaturaActual() {
@@ -1335,42 +1424,58 @@
                 mostrarToast("Selecciona una asignatura primero.", 'error');
                 return;
             }
+            const opcion = (valor, texto, marcado) => `
+                <label class="cursor-pointer">
+                    <input type="radio" name="modoNuevoParalelo" value="${valor}" ${marcado ? 'checked' : ''} class="sr-only peer">
+                    <span class="block text-center text-[11px] font-bold py-2 rounded-xl border-2 border-gray-200 text-gray-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 transition">${texto}</span>
+                </label>`;
+            abrirModalTexto({
+                titulo: 'Nuevo paralelo', icono: 'fa-users', contexto: `Asignatura: ${selectAsig}`,
+                etiqueta: 'Paralelo', placeholder: 'Ej: 8vo B, 7mo A',
+                textoBoton: 'Crear paralelo', mensajeVacio: 'Escribe el nombre del paralelo.',
+                extraHTML: `
+                    <label class="block text-[11px] font-bold text-indigo-900 uppercase mb-1">Modo de cálculo</label>
+                    <div class="grid grid-cols-3 gap-2">${opcion('auto', 'Automático', true)}${opcion('simple', 'Simple', false)}${opcion('ponderado', 'Ponderado', false)}</div>
+                    <p class="text-[10px] text-gray-400 mt-1.5">Automático lo decide según el nombre del paralelo. Si no lo reconoce, te pedirá elegir.</p>`,
+                onConfirmar: (nombre) => {
+                    const lista = asignaturasParalelos[selectAsig] || [];
+                    if (lista.some(x => normalizarTexto(x) === normalizarTexto(nombre))) {
+                        return 'Ese paralelo ya está en esta asignatura.';
+                    }
+                    const eleccion = document.querySelector('input[name="modoNuevoParalelo"]:checked').value;
+                    const modoExistente = modoCalculoParalelo[nombre];
+                    let modoFinal, avisoAuto = false;
 
-            const nombreParalelo = prompt(`Escribe el paralelo que recibe "${selectAsig}" (Ej: 8vo B, 7mo A):`);
-            if (nombreParalelo && nombreParalelo.trim() !== "") {
-                const limpio = nombreParalelo.trim();
-                if (!asignaturasParalelos[selectAsig]) {
-                    asignaturasParalelos[selectAsig] = [];
-                }
-                if (!asignaturasParalelos[selectAsig].includes(limpio)) {
-                    asignaturasParalelos[selectAsig].push(limpio);
-                    guardarLS('asignaturasParalelos', asignaturasParalelos);
-                }
-
-                // Si el paralelo es nuevo, se intenta reconocer el modo automáticamente
-                // a partir de su nombre (ej. "5to A" → Ponderado, "3ro B" → Simple).
-                // Solo si no se puede reconocer, se pregunta una vez, de forma simple.
-                if (modoCalculoParalelo[limpio] === undefined) {
-                    const modoDetectado = detectarModoPorNombreParalelo(limpio);
-                    if (modoDetectado) {
-                        modoCalculoParalelo[limpio] = modoDetectado;
-                        guardarLS('modoCalculoParalelo', modoCalculoParalelo);
-                        mostrarToast(
-                            `"${limpio}" → Modo ${modoDetectado === 'ponderado' ? 'Ponderado' : 'Simple'} (detectado automáticamente).`,
-                            'info', 4000
-                        );
+                    if (modoExistente !== undefined) {
+                        // El modo se comparte entre asignaturas que usan el mismo paralelo
+                        if (eleccion !== 'auto' && eleccion !== modoExistente) {
+                            return `"${nombre}" ya tiene Modo ${modoExistente === 'ponderado' ? 'Ponderado' : 'Simple'} (se comparte entre asignaturas). Para cambiarlo usa "Cambiar" junto al paralelo.`;
+                        }
+                        modoFinal = modoExistente;
+                    } else if (eleccion === 'auto') {
+                        const detectado = detectarModoPorNombreParalelo(nombre);
+                        if (!detectado) return 'No pude reconocer el nivel por el nombre. Elige Simple o Ponderado.';
+                        modoFinal = detectado;
+                        avisoAuto = true;
                     } else {
-                        const esPonderado = confirm(
-                            `No se pudo reconocer el nivel de "${limpio}" a partir del nombre.\n\n` +
-                            `Aceptar = Modo Ponderado\nCancelar = Modo Simple`
-                        );
-                        modoCalculoParalelo[limpio] = esPonderado ? 'ponderado' : 'simple';
+                        modoFinal = eleccion;
+                    }
+
+                    if (!asignaturasParalelos[selectAsig]) asignaturasParalelos[selectAsig] = [];
+                    asignaturasParalelos[selectAsig].push(nombre);
+                    guardarLS('asignaturasParalelos', asignaturasParalelos);
+                    if (modoExistente === undefined) {
+                        modoCalculoParalelo[nombre] = modoFinal;
                         guardarLS('modoCalculoParalelo', modoCalculoParalelo);
                     }
-                }
 
-                renderizarSelectParalelos(limpio);
-            }
+                    renderizarSelectParalelos(nombre);
+                    mostrarToast(
+                        `Paralelo "${nombre}" creado · Modo ${modoFinal === 'ponderado' ? 'Ponderado' : 'Simple'}${avisoAuto ? ' (detectado automáticamente)' : ''}.`,
+                        'exito', 4000
+                    );
+                }
+            });
         }
 
         // Intenta reconocer si un paralelo es Elemental (Simple) o Media/Superior (Ponderado)
@@ -2089,22 +2194,23 @@
                 mostrarToast("Selecciona o crea un paralelo primero.", 'error');
                 return;
             }
-
-            const nombreAlumno = prompt(`Escribe los APELLIDOS Y NOMBRES del nuevo estudiante para ${paralelo}:`);
-            if (nombreAlumno && nombreAlumno.trim() !== "") {
-                const limpio = nombreAlumno.trim().toUpperCase();
-                if (!estudiantesData[paralelo]) {
-                    estudiantesData[paralelo] = [];
-                }
-                if (!estudiantesData[paralelo].includes(limpio)) {
+            abrirModalTexto({
+                titulo: 'Nuevo estudiante', icono: 'fa-user-plus', contexto: `Paralelo: ${paralelo}`,
+                etiqueta: 'Apellidos y nombres', placeholder: 'Ej: ALVAREZ AGUILAR ARANTZA NICOLE',
+                textoBoton: 'Agregar', permitirOtro: true,
+                mensajeVacio: 'Escribe los apellidos y nombres del estudiante.',
+                nota: 'Se guarda en mayúsculas y la nómina se ordena sola. Con "Agregar y otro" puedes seguir con el siguiente.',
+                onConfirmar: (valor) => {
+                    const limpio = valor.toUpperCase();
+                    if (!estudiantesData[paralelo]) estudiantesData[paralelo] = [];
+                    if (estudiantesData[paralelo].includes(limpio)) return 'Ese estudiante ya existe en este paralelo.';
                     estudiantesData[paralelo].push(limpio);
                     estudiantesData[paralelo] = ordenarNomina(estudiantesData[paralelo]);
                     guardarLS('estudiantesData', estudiantesData);
                     cargarEstudiantesYNotas();
-                } else {
-                    mostrarToast("El estudiante ya existe en este paralelo.", 'error');
+                    mostrarToast(`${limpio} agregado.`, 'exito', 2500);
                 }
-            }
+            });
         }
 
         function eliminarEstudiante(nombre) {
@@ -2704,7 +2810,8 @@
                     } else {
                         // Promedio progresivo: aún faltan categorías por calificar, se marca con "~"
                         textoPromedio = `~${promedioInfo.total.toFixed(2)}`;
-                        claseProm = 'text-blue-600';
+                        // Provisional: azul, pero si ya está bajo 7 se marca en rojo para detectarlo a tiempo
+                        claseProm = promedioInfo.total < 7 ? 'text-rose-600' : 'text-blue-600';
                     }
                 }
 
@@ -2785,7 +2892,7 @@
                         clase = promedioInfo.total < 7 ? 'text-rose-600' : 'text-emerald-700';
                     } else {
                         texto = `~${promedioInfo.total.toFixed(2)}`;
-                        clase = 'text-blue-600';
+                        clase = promedioInfo.total < 7 ? 'text-rose-600' : 'text-blue-600';
                     }
                 }
                 span.className = `text-[9px] font-black ${clase} block mt-0.5 underline decoration-dotted cursor-pointer`;
@@ -3711,12 +3818,13 @@
             const filasEst = datos.filas.map((f, idx) => {
                 const chips = f.trims.map((t, i) => {
                     const txt = t === null ? '—' : `${t.parcial ? '~' : ''}${t.valor.toFixed(2)}`;
-                    const clase = t === null ? 'bg-gray-100 text-gray-400' : (t.parcial ? 'bg-blue-50 text-blue-700' : 'bg-indigo-50 text-indigo-700');
+                    const clase = t === null ? 'bg-gray-100 text-gray-400' : (t.valor < 7 ? 'bg-rose-100 text-rose-700' : (t.parcial ? 'bg-blue-50 text-blue-700' : 'bg-indigo-50 text-indigo-700'));
                     return `<span class="${clase} rounded-lg px-1.5 py-0.5 text-[10px] font-bold">T${i + 1} ${txt}</span>`;
                 }).join('');
 
                 let colorAnual = colorValor(f.anual);
-                if (f.anual !== null && f.provisional) colorAnual = 'text-blue-600';
+                if (f.anual !== null && f.provisional && f.anual >= 7) colorAnual = 'text-blue-600';
+                const bajo = f.anual !== null && f.anual < 7; // casilla completa en rojo para ver rápido quién está mal
                 const textoAnual = f.anual === null ? '—' : `${f.provisional ? '~' : ''}${f.anual.toFixed(2)}`;
 
                 let tend = '';
@@ -3726,10 +3834,10 @@
                         : `<p class="text-[10px] font-bold text-emerald-600">↑ ${f.tendencia.toFixed(2)}</p>`;
                 }
                 return `
-                    <div class="py-2.5 border-b border-indigo-50 last:border-none cursor-pointer active:bg-indigo-50/60" role="button" tabindex="0" onclick="abrirDetalleDesdeResumen(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalleDesdeResumen(${idx});}">
+                    <div class="py-2.5 border-b ${bajo ? 'border-rose-100 bg-rose-50 -mx-4 px-4 border-l-4 border-l-rose-500' : 'border-indigo-50'} last:border-none cursor-pointer active:bg-indigo-50/60" role="button" tabindex="0" onclick="abrirDetalleDesdeResumen(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalleDesdeResumen(${idx});}">
                         <div class="flex justify-between items-start gap-2">
                             <div class="min-w-0">
-                                <p class="text-xs font-bold text-gray-800 uppercase leading-snug break-words">${idx + 1}. ${escapeHtml(f.nombre)}</p>
+                                <p class="text-xs font-bold ${bajo ? 'text-rose-800' : 'text-gray-800'} uppercase leading-snug break-words">${idx + 1}. ${escapeHtml(f.nombre)}</p>
                                 <div class="flex flex-wrap gap-1 mt-1">${chips}</div>
                             </div>
                             <div class="text-right flex-shrink-0">
@@ -3975,7 +4083,7 @@
             if (info && info.total !== null) {
                 const prov = !!info.parcial;
                 promTxt = `${prov ? '~' : ''}${info.total.toFixed(2)}`;
-                promCls = prov ? 'text-blue-600' : (info.total < 7 ? 'text-rose-600' : 'text-emerald-700');
+                promCls = info.total < 7 ? 'text-rose-600' : (prov ? 'text-blue-600' : 'text-emerald-700');
                 letra = pillLetra(letraCualitativa(info.total));
             }
             let desglose = '';
@@ -4025,7 +4133,7 @@
 
             const filas = trims.map((x, i) => {
                 const val = x.valor
-                    ? `<span class="text-sm font-black ${x.valor.parcial ? 'text-blue-600' : (x.valor.v < 7 ? 'text-rose-600' : 'text-emerald-700')}">${x.valor.parcial ? '~' : ''}${x.valor.v.toFixed(2)}</span> ${pillLetra(letraCualitativa(x.valor.v))}`
+                    ? `<span class="text-sm font-black ${x.valor.v < 7 ? 'text-rose-600' : (x.valor.parcial ? 'text-blue-600' : 'text-emerald-700')}">${x.valor.parcial ? '~' : ''}${x.valor.v.toFixed(2)}</span> ${pillLetra(letraCualitativa(x.valor.v))}`
                     : `<span class="text-xs text-gray-400">Sin notas</span>`;
                 const prog = x.total === 0 ? 'Sin insumos creados' : `${x.calificados} de ${x.total} insumo${x.total === 1 ? '' : 's'} calificado${x.calificados === 1 ? '' : 's'}`;
                 return `<div class="flex items-center justify-between gap-2 py-2.5 border-b border-indigo-50 last:border-none">
@@ -4033,7 +4141,7 @@
                     <div class="text-right">${val}</div></div>`;
             }).join('');
 
-            const colorAnual = anual === null ? 'text-gray-400' : (provisional ? 'text-blue-600' : (anual < 7 ? 'text-rose-600' : 'text-emerald-700'));
+            const colorAnual = anual === null ? 'text-gray-400' : (anual < 7 ? 'text-rose-600' : (provisional ? 'text-blue-600' : 'text-emerald-700'));
             let tend = '';
             if (tendencia !== null && Math.abs(tendencia) >= 0.05) {
                 tend = tendencia < 0
