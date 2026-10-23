@@ -471,7 +471,7 @@
                     </div>
                     <div class="flex items-center justify-between mt-2">
                         <span class="text-[11px] text-gray-500">Versión de la app</span>
-                        <span class="text-[11px] font-bold text-indigo-700">v4</span>
+                        <span class="text-[11px] font-bold text-indigo-700">v5</span>
                     </div>
                 </div>
 
@@ -1099,6 +1099,10 @@
                         rubricaExcepcionAlumno = data.rubricaExcepcionAlumno;
                         guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
                     }
+                    if (data.insumosNoAplican) {
+                        insumosNoAplican = data.insumosNoAplican;
+                        guardarLS('insumosNoAplican', insumosNoAplican);
+                    }
 
                     renderizarSelectAsignaturas();
                     renderizarSelectParalelos();
@@ -1154,6 +1158,9 @@
         // Excepciones puntuales por alumno (ej. adaptación por discapacidad):
         // { "Asig_Paralelo_Trimestre_Insumo": { "Nombre Alumno": "Nombre rúbrica" } }
         let rubricaExcepcionAlumno = cargarLS('rubricaExcepcionAlumno', {});
+        // Insumos que NO le aplican a un estudiante porque ingresó después de que ya se habían calificado:
+        // { "Asig_Paralelo_Trimestre_Insumo": { "Nombre Alumno": true } }
+        let insumosNoAplican = cargarLS('insumosNoAplican', {});
         // Recuerda el último contexto (asignatura/paralelo/trimestre/insumo) que estaba
         // realmente pintado en pantalla, para poder guardarlo automáticamente si el
         // usuario cambia de selección sin pulsar "Guardar" (evita pérdida de datos).
@@ -1290,6 +1297,8 @@
                     Object.assign(notasGuardadas, borrados.notasBorradas);
                     Object.assign(rubricaAsignadaInsumo, borrados.rubricasAsignadasBorradas);
                     Object.assign(rubricaExcepcionAlumno, borrados.excepcionesBorradas);
+                    Object.assign(insumosNoAplican, borrados.noAplicanBorrados);
+                    guardarLS('insumosNoAplican', insumosNoAplican);
                     guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
                     guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
                     guardarLS('listaAsignaturas', listaAsignaturas);
@@ -1321,6 +1330,11 @@
             Object.keys(notasGuardadas).forEach(k => {
                 if (k.startsWith(prefijo)) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
             });
+            const noAplicanBorrados = {};
+            Object.keys(insumosNoAplican).forEach(k => {
+                if (k.startsWith(prefijo)) { noAplicanBorrados[k] = insumosNoAplican[k]; delete insumosNoAplican[k]; }
+            });
+            guardarLS('insumosNoAplican', insumosNoAplican);
             const rubricasAsignadasBorradas = {};
             const excepcionesBorradas = {};
             Object.keys(rubricaAsignadaInsumo).forEach(k => {
@@ -1334,7 +1348,7 @@
             guardarLS('notasGuardadasDB', notasGuardadas);
             guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
             guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
-            return { insumosBorrados, categoriasBorradas, notasBorradas, rubricasAsignadasBorradas, excepcionesBorradas };
+            return { insumosBorrados, categoriasBorradas, notasBorradas, rubricasAsignadasBorradas, excepcionesBorradas, noAplicanBorrados };
         }
 
         // Elimina insumos y notas huérfanas al quitar un paralelo de una asignatura
@@ -1360,6 +1374,11 @@
             Object.keys(notasGuardadas).forEach(k => {
                 if (k.startsWith(prefijoBase + '_')) { notasBorradas[k] = notasGuardadas[k]; delete notasGuardadas[k]; }
             });
+            const noAplicanBorrados = {};
+            Object.keys(insumosNoAplican).forEach(k => {
+                if (k.startsWith(prefijoBase + '_')) { noAplicanBorrados[k] = insumosNoAplican[k]; delete insumosNoAplican[k]; }
+            });
+            guardarLS('insumosNoAplican', insumosNoAplican);
             const rubricasAsignadasBorradas = {};
             const excepcionesBorradas = {};
             Object.keys(rubricaAsignadaInsumo).forEach(k => {
@@ -1373,7 +1392,7 @@
             guardarLS('notasGuardadasDB', notasGuardadas);
             guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
             guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
-            return { insumosBorrados, categoriasBorradas, notasBorradas, rubricasAsignadasBorradas, excepcionesBorradas };
+            return { insumosBorrados, categoriasBorradas, notasBorradas, rubricasAsignadasBorradas, excepcionesBorradas, noAplicanBorrados };
         }
 
         function alCambiarAsignatura() {
@@ -1670,6 +1689,63 @@
                 total += v;
             });
             return Math.round(total * 100) / 100;
+        }
+
+        // ===================================================================
+        // ESTUDIANTES QUE INGRESAN DESPUÉS
+        // Un estudiante nuevo NO aplica a los insumos que ya tenían notas o asistencia
+        // de fechas anteriores. Sí aplica a los de hoy en adelante y a los que se creen después.
+        // Solo se agregan marcas (nunca se borra ningún dato).
+        // ===================================================================
+        function estudianteNoAplica(claveDB, nombre) {
+            return !!(insumosNoAplican[claveDB] && insumosNoAplican[claveDB][nombre]);
+        }
+
+        function registrarAltaEstudiantes(paralelo, nombres) {
+            if (!nombres || nombres.length === 0) return 0;
+            recolectarDatosFormulario(contextoRenderizado, false); // lo escrito en pantalla cuenta como ya registrado
+            const hoy = obtenerFechaActualFormato();
+            let insumosMarcados = 0;
+
+            listaAsignaturas.forEach(asig => {
+                if (!(asignaturasParalelos[asig] || []).includes(paralelo)) return;
+                TRIMESTRES_VALIDOS.forEach(trim => {
+                    obtenerListaInsumos(asig, paralelo, trim).forEach(ins => {
+                        const claveDB = claveDBDesde(asig, paralelo, trim, ins);
+                        const reg = notasGuardadas[claveDB];
+                        if (!reg) return; // insumo sin registro todavía: aplica
+                        const mapas = [reg.notas, reg.asistencia, reg.observaciones, reg.evidencias, reg.rubricaPuntos];
+                        const tieneDatos = mapas.some(m => m && Object.keys(m).length > 0);
+                        const esAnterior = !reg.fecha || reg.fecha < hoy;
+                        if (!tieneDatos || !esAnterior) return; // vacío o de hoy en adelante: aplica
+
+                        let marcado = false;
+                        nombres.forEach(n => {
+                            // Si el estudiante ya tenía datos aquí (ej. se volvió a agregar), no se le oculta nada
+                            const yaTenia = mapas.some(m => m && Object.prototype.hasOwnProperty.call(m, n));
+                            if (yaTenia) return;
+                            if (!insumosNoAplican[claveDB]) insumosNoAplican[claveDB] = {};
+                            insumosNoAplican[claveDB][n] = true;
+                            marcado = true;
+                        });
+                        if (marcado) insumosMarcados++;
+                    });
+                });
+            });
+            if (insumosMarcados > 0) guardarLS('insumosNoAplican', insumosNoAplican);
+            return insumosMarcados;
+        }
+
+        // Por si el estudiante sí debía estar en ese insumo: se le quita la marca "No aplica"
+        function incluirEstudianteEnInsumo(nombre) {
+            const claveDB = claveDBInsumoActual();
+            if (insumosNoAplican[claveDB]) {
+                delete insumosNoAplican[claveDB][nombre];
+                if (Object.keys(insumosNoAplican[claveDB]).length === 0) delete insumosNoAplican[claveDB];
+                guardarLS('insumosNoAplican', insumosNoAplican);
+            }
+            cargarEstudiantesYNotas();
+            mostrarToast(`${nombre} ahora aplica a este insumo.`, 'exito');
         }
 
         // ----- Modal 1: asignar/quitar la rúbrica de un insumo -----
@@ -2084,6 +2160,8 @@
                     Object.assign(notasGuardadas, borrados.notasBorradas);
                     Object.assign(rubricaAsignadaInsumo, borrados.rubricasAsignadasBorradas);
                     Object.assign(rubricaExcepcionAlumno, borrados.excepcionesBorradas);
+                    Object.assign(insumosNoAplican, borrados.noAplicanBorrados);
+                    guardarLS('insumosNoAplican', insumosNoAplican);
                     guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
                     guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
                     guardarLS('asignaturasParalelos', asignaturasParalelos);
@@ -2168,24 +2246,63 @@
 
         function editarNombreEstudiante(nombreAntiguo) {
             const paralelo = document.getElementById('selectParalelo').value;
-            const nuevoNombre = prompt(`Editar nombre del estudiante:`, nombreAntiguo);
-            if (nuevoNombre && nuevoNombre.trim() !== "") {
-                const limpio = nuevoNombre.trim().toUpperCase();
-                if (limpio === nombreAntiguo) return;
-
-                if (estudiantesData[paralelo].includes(limpio)) {
-                    mostrarToast("Ya existe un estudiante con ese nombre en este paralelo.", 'error');
-                    return;
+            if (!paralelo) return;
+            abrirModalTexto({
+                titulo: 'Editar estudiante', icono: 'fa-pen', contexto: `Paralelo: ${paralelo}`,
+                etiqueta: 'Apellidos y nombres', valorInicial: nombreAntiguo,
+                textoBoton: 'Guardar cambios', mensajeVacio: 'Escribe los apellidos y nombres del estudiante.',
+                nota: 'Sus notas, asistencia y observaciones se conservan con el nombre nuevo, en todos los insumos y trimestres.',
+                onConfirmar: (valor) => {
+                    const limpio = valor.toUpperCase();
+                    if (limpio === nombreAntiguo) return; // sin cambios: solo se cierra
+                    const lista = estudiantesData[paralelo] || [];
+                    if (lista.some(x => x !== nombreAntiguo && x === limpio)) return 'Ya existe un estudiante con ese nombre en este paralelo.';
+                    return renombrarEstudianteEnParalelo(paralelo, nombreAntiguo, limpio);
                 }
+            });
+        }
 
-                const index = estudiantesData[paralelo].indexOf(nombreAntiguo);
-                if (index !== -1) {
-                    estudiantesData[paralelo][index] = limpio;
-                    estudiantesData[paralelo] = ordenarNomina(estudiantesData[paralelo]);
-                    guardarLS('estudiantesData', estudiantesData);
-                    cargarEstudiantesYNotas();
+        // Cambia el nombre en la nómina y mueve con él todo lo que tenía registrado
+        // (notas, asistencia, observaciones, evidencias, puntos de rúbrica y marcas "No aplica").
+        function renombrarEstudianteEnParalelo(paralelo, viejo, nuevo) {
+            // 1) Se guarda lo que haya en pantalla antes de mover nada
+            recolectarDatosFormulario(contextoRenderizado, false);
+
+            // 2) Nómina
+            const lista = estudiantesData[paralelo] || [];
+            const idx = lista.indexOf(viejo);
+            if (idx === -1) return 'No se encontró al estudiante.';
+            lista[idx] = nuevo;
+            estudiantesData[paralelo] = ordenarNomina(lista);
+            guardarLS('estudiantesData', estudiantesData);
+
+            // 3) Datos de este paralelo en todas las asignaturas que lo usan
+            const mover = (obj) => {
+                if (obj && Object.prototype.hasOwnProperty.call(obj, viejo)) {
+                    obj[nuevo] = obj[viejo];
+                    delete obj[viejo];
                 }
-            }
+            };
+            listaAsignaturas.forEach(asig => {
+                if (!(asignaturasParalelos[asig] || []).includes(paralelo)) return;
+                const prefijo = `${asig}_${paralelo}_`;
+                Object.keys(notasGuardadas).forEach(clave => {
+                    if (!clave.startsWith(prefijo)) return;
+                    const reg = notasGuardadas[clave];
+                    ['notas', 'asistencia', 'observaciones', 'evidencias', 'rubricaPuntos'].forEach(m => mover(reg[m]));
+                });
+                Object.keys(rubricaExcepcionAlumno).forEach(clave => { if (clave.startsWith(prefijo)) mover(rubricaExcepcionAlumno[clave]); });
+                Object.keys(insumosNoAplican).forEach(clave => { if (clave.startsWith(prefijo)) mover(insumosNoAplican[clave]); });
+            });
+            guardarLS('notasGuardadasDB', notasGuardadas);
+            guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+            guardarLS('insumosNoAplican', insumosNoAplican);
+
+            // 4) La pantalla todavía muestra el nombre viejo: se evita que el guardado automático
+            //    lo vuelva a escribir antes de dibujar la nómina con el nombre nuevo
+            contextoRenderizado = { asignatura: null, paralelo: null, trimestre: null, insumo: null };
+            cargarEstudiantesYNotas();
+            mostrarToast(`Nombre actualizado a "${nuevo}". Sus notas se conservaron.`, 'exito', 4500);
         }
 
         function agregarEstudianteManual() {
@@ -2199,7 +2316,7 @@
                 etiqueta: 'Apellidos y nombres', placeholder: 'Ej: ALVAREZ AGUILAR ARANTZA NICOLE',
                 textoBoton: 'Agregar', permitirOtro: true,
                 mensajeVacio: 'Escribe los apellidos y nombres del estudiante.',
-                nota: 'Se guarda en mayúsculas y la nómina se ordena sola. Con "Agregar y otro" puedes seguir con el siguiente.',
+                nota: 'Se guarda en mayúsculas y la nómina se ordena sola. Solo aplica a los insumos de hoy en adelante: los que ya tenían notas de fechas anteriores quedan como "No aplica".',
                 onConfirmar: (valor) => {
                     const limpio = valor.toUpperCase();
                     if (!estudiantesData[paralelo]) estudiantesData[paralelo] = [];
@@ -2207,8 +2324,12 @@
                     estudiantesData[paralelo].push(limpio);
                     estudiantesData[paralelo] = ordenarNomina(estudiantesData[paralelo]);
                     guardarLS('estudiantesData', estudiantesData);
+                    const anteriores = registrarAltaEstudiantes(paralelo, [limpio]);
                     cargarEstudiantesYNotas();
-                    mostrarToast(`${limpio} agregado.`, 'exito', 2500);
+                    mostrarToast(
+                        anteriores > 0 ? `${limpio} agregado. No aplica a ${anteriores} insumo${anteriores === 1 ? '' : 's'} anterior${anteriores === 1 ? '' : 'es'}.` : `${limpio} agregado.`,
+                        'exito', 3500
+                    );
                 }
             });
         }
@@ -2452,6 +2573,11 @@
                 delete rubricaExcepcionAlumno[dbVieja];
                 guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
             }
+            if (insumosNoAplican[dbVieja] !== undefined) {
+                insumosNoAplican[dbNueva] = insumosNoAplican[dbVieja];
+                delete insumosNoAplican[dbVieja];
+                guardarLS('insumosNoAplican', insumosNoAplican);
+            }
 
             // 5) Para que el guardado automático use el nombre nuevo y no recree el viejo
             if (contextoRenderizado.insumo === viejo) {
@@ -2526,10 +2652,13 @@
                 // También se suelta la rúbrica asignada a este insumo (y sus excepciones por alumno)
                 const rubricaAsignadaAntes = rubricaAsignadaInsumo[claveDB];
                 const excepcionesAntes = rubricaExcepcionAlumno[claveDB];
+                const noAplicanAntes = insumosNoAplican[claveDB];
                 delete rubricaAsignadaInsumo[claveDB];
                 delete rubricaExcepcionAlumno[claveDB];
+                delete insumosNoAplican[claveDB];
                 guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
                 guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
+                guardarLS('insumosNoAplican', insumosNoAplican);
 
                 renderizarSelectInsumos();
 
@@ -2542,6 +2671,8 @@
                     if (notaBorrada) notasGuardadas[claveDB] = notaBorrada;
                     if (rubricaAsignadaAntes !== undefined) rubricaAsignadaInsumo[claveDB] = rubricaAsignadaAntes;
                     if (excepcionesAntes !== undefined) rubricaExcepcionAlumno[claveDB] = excepcionesAntes;
+                    if (noAplicanAntes !== undefined) insumosNoAplican[claveDB] = noAplicanAntes;
+                    guardarLS('insumosNoAplican', insumosNoAplican);
                     guardarLS('rubricaAsignadaInsumo', rubricaAsignadaInsumo);
                     guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
                     guardarLS('listaInsumosPersonalizados', listaInsumosPersonalizados);
@@ -2815,6 +2946,30 @@
                     }
                 }
 
+                // Estudiante que ingresó después de que este insumo ya se había calificado:
+                // se muestra su fila atenuada, sin campos de nota ni asistencia (así no se escribe nada en ese insumo).
+                if (estudianteNoAplica(claveDB, nombre)) {
+                    return `
+                    <div class="fila-alumno p-3 bg-gray-50 border-b border-emerald-50 last:border-none" data-nombre-busqueda="${nombreBusqueda}">
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="flex items-center gap-2 min-w-0 flex-1 text-left" onclick="editarNombreEstudiante('${nombreAttr}')" title="Editar nombre" aria-label="Editar nombre de ${nombreSeguro}">
+                                <span class="w-6 h-6 bg-gray-200 text-gray-500 font-bold rounded-full flex items-center justify-center text-xs flex-shrink-0">${num}</span>
+                                <div class="min-w-0">
+                                    <span class="text-xs font-bold text-gray-500 uppercase leading-snug break-words block">${nombreSeguro}</span>
+                                    <span id="promedio_${idLimpio}" onclick="event.stopPropagation(); mostrarDetallePromedio('${nombreAttr}')" class="text-[9px] font-black ${claseProm} block mt-0.5 underline decoration-dotted cursor-pointer">Prom: ${textoPromedio}</span>
+                                </div>
+                            </button>
+                            <div class="text-right flex-shrink-0">
+                                <span class="inline-block text-[10px] font-bold px-2 py-1 rounded-lg bg-gray-200 text-gray-600">No aplica · ingresó después</span>
+                                <button type="button" onclick="incluirEstudianteEnInsumo('${nombreAttr}')" class="block ml-auto mt-1 text-[10px] font-bold text-indigo-600 underline">Incluir en este insumo</button>
+                            </div>
+                            <button type="button" onclick="eliminarEstudiante('${nombreAttr}')" class="text-gray-300 hover:text-rose-500 p-1 rounded-lg transition flex-shrink-0" title="Eliminar alumno" aria-label="Eliminar a ${nombreSeguro}">
+                                <i class="fa-solid fa-xmark text-base"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                }
+
                 return `
                     <div class="fila-alumno p-3 space-y-2 hover:bg-emerald-50/40 transition border-b border-emerald-50 last:border-none" data-nombre-busqueda="${nombreBusqueda}">
                         <div class="grid grid-cols-12 items-center gap-2">
@@ -2989,6 +3144,7 @@
                     rubricasPersonalizadas: rubricasPersonalizadas,
                     rubricaAsignadaInsumo: rubricaAsignadaInsumo,
                     rubricaExcepcionAlumno: rubricaExcepcionAlumno,
+                    insumosNoAplican: insumosNoAplican,
                     ultimoContextoUsado: { asignatura, paralelo, trimestre, insumo },
                     ultimaActualizacion: new Date().toLocaleString()
                 }, { merge: true })
@@ -3048,7 +3204,13 @@
 
                     estudiantesData[paraleloActual] = ordenarNomina(nombres);
                     guardarLS('estudiantesData', estudiantesData);
-                    mostrarToast(`Se cargaron ${nombres.length} estudiantes para ${paraleloActual}.`, 'exito');
+                    // Los que no estaban en la nómina anterior son nuevos: no aplican a insumos ya calificados
+                    const agregados = nominaActual.length > 0 ? nombres.filter(n => !nominaActual.includes(n)) : [];
+                    const anteriores = registrarAltaEstudiantes(paraleloActual, agregados);
+                    mostrarToast(
+                        `Se cargaron ${nombres.length} estudiantes para ${paraleloActual}.` + (anteriores > 0 ? ` Los ${agregados.length} nuevo(s) no aplican a insumos anteriores.` : ''),
+                        'exito', anteriores > 0 ? 5000 : 3200
+                    );
                     cargarEstudiantesYNotas();
                 } catch (err) {
                     console.error("Error al leer el archivo Excel:", err);
@@ -3267,6 +3429,7 @@
                 listaInsumos.forEach(ins => {
                     const claveDB = `${asignaturaSel}_${paraleloSel}_${trimestreSel}_${ins}`;
                     const datosInsumo = notasGuardadas[claveDB] || {};
+                    if (estudianteNoAplica(claveDB, estudiante)) { filaEst.push("N/A"); return; } // ingresó después: no cuenta
                     const estado = (datosInsumo.asistencia && datosInsumo.asistencia[estudiante] !== undefined) ? datosInsumo.asistencia[estudiante] : "A";
 
                     if (estado === "A" || estado === true) {
@@ -4040,7 +4203,8 @@
                 return {
                     insumo: ins,
                     categoria: ponderado ? obtenerCategoriaInsumo(claveKey, ins) : null,
-                    nota: tiene ? parseFloat(nota) : null
+                    nota: tiene ? parseFloat(nota) : null,
+                    noAplica: estudianteNoAplica(claveDB, nombre)
                 };
             });
             const sinCrear = [];
@@ -4052,7 +4216,7 @@
             }
             return {
                 filas, ponderado, sinCrear,
-                pendientes: filas.filter(f => f.nota === null).map(f => f.insumo),
+                pendientes: filas.filter(f => f.nota === null && !f.noAplica).map(f => f.insumo),
                 info: calcularPromedioAlumno(nombre, asignatura, paralelo, trimestre)
             };
         }
@@ -4070,7 +4234,9 @@
             const filasHtml = d.filas.map(f => {
                 const tipo = d.ponderado
                     ? `<span class="inline-block ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-md align-middle ${tipos[f.categoria][1]}">${tipos[f.categoria][0]}</span>` : '';
-                const nota = f.nota === null
+                const nota = f.noAplica
+                    ? `<span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-200 text-gray-600">No aplica</span>`
+                    : f.nota === null
                     ? `<span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">Pendiente</span>`
                     : `<span class="text-sm font-black ${f.nota < 7 ? 'text-rose-600' : 'text-emerald-700'}">${f.nota.toFixed(2)}</span>`;
                 return `<tr class="border-b border-indigo-50 last:border-none">
@@ -4098,7 +4264,9 @@
             const aviso = d.pendientes.length > 0
                 ? `<div class="rounded-xl border border-amber-200 bg-amber-50 p-3 mt-3"><p class="text-[11px] font-black text-amber-800 uppercase tracking-wide">Le falta</p>
                     <p class="text-xs text-amber-900 mt-0.5">${d.pendientes.map(escapeHtml).join(' · ')}</p></div>`
-                : `<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 mt-3"><p class="text-xs font-bold text-emerald-800"><i class="fa-solid fa-circle-check"></i> Tiene todos los insumos calificados.</p></div>`;
+                : (d.filas.every(f => f.noAplica)
+                    ? `<div class="rounded-xl border border-gray-200 bg-gray-50 p-3 mt-3"><p class="text-xs font-bold text-gray-600">Ningún insumo de este trimestre le aplica (ingresó después).</p></div>`
+                    : `<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 mt-3"><p class="text-xs font-bold text-emerald-800"><i class="fa-solid fa-circle-check"></i> Tiene todos los insumos calificados.</p></div>`);
             const sinCrear = d.sinCrear.length > 0
                 ? `<p class="text-[10px] text-gray-400 mt-2">Aún sin crear en este trimestre: ${d.sinCrear.join(', ')}.</p>` : '';
 
@@ -4120,10 +4288,10 @@
             const paralelo = document.getElementById('selectParalelo').value;
             const trims = TRIMESTRES_RESUMEN.map(t => {
                 const d = datosDetalleEstudiante(nombre, t);
-                const total = d.filas.length;
+                const total = d.filas.filter(f => !f.noAplica).length; // solo los que le aplican
                 const calificados = d.filas.filter(f => f.nota !== null).length;
                 const valor = (d.info && d.info.total !== null) ? { v: d.info.total, parcial: !!d.info.parcial } : null;
-                return { t, total, calificados, valor };
+                return { t, total, calificados, valor, hayInsumos: d.filas.length > 0 };
             });
             const conNota = trims.filter(x => x.valor);
             const anual = conNota.length ? conNota.reduce((a, x) => a + x.valor.v, 0) / conNota.length : null;
@@ -4135,7 +4303,7 @@
                 const val = x.valor
                     ? `<span class="text-sm font-black ${x.valor.v < 7 ? 'text-rose-600' : (x.valor.parcial ? 'text-blue-600' : 'text-emerald-700')}">${x.valor.parcial ? '~' : ''}${x.valor.v.toFixed(2)}</span> ${pillLetra(letraCualitativa(x.valor.v))}`
                     : `<span class="text-xs text-gray-400">Sin notas</span>`;
-                const prog = x.total === 0 ? 'Sin insumos creados' : `${x.calificados} de ${x.total} insumo${x.total === 1 ? '' : 's'} calificado${x.calificados === 1 ? '' : 's'}`;
+                const prog = x.total === 0 ? (x.hayInsumos ? 'Ningún insumo le aplica (ingresó después)' : 'Sin insumos creados') : `${x.calificados} de ${x.total} insumo${x.total === 1 ? '' : 's'} calificado${x.calificados === 1 ? '' : 's'}`;
                 return `<div class="flex items-center justify-between gap-2 py-2.5 border-b border-indigo-50 last:border-none">
                     <div><p class="text-xs font-bold text-gray-800">${nombres[i]}</p><p class="text-[10px] text-gray-500">${prog}</p></div>
                     <div class="text-right">${val}</div></div>`;
