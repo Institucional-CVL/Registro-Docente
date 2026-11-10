@@ -325,7 +325,15 @@
                     <!-- Fecha -->
                     <div class="pt-3 border-t border-blue-100">
                         <label class="block text-[11px] font-bold text-indigo-900 uppercase mb-1">📅 Fecha de evaluación / clase</label>
-                        <input type="date" id="inputFecha" onchange="guardarFechaCambiada()" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="moverFechaRegistro(-1)" aria-label="Día anterior" class="w-10 h-10 flex-shrink-0 rounded-xl bg-gray-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-50 active:scale-95 transition"><i class="fa-solid fa-chevron-left"></i></button>
+                            <input type="date" id="inputFecha" onchange="guardarFechaCambiada()" class="flex-1 min-w-0 bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                            <button type="button" onclick="moverFechaRegistro(1)" aria-label="Día siguiente" class="w-10 h-10 flex-shrink-0 rounded-xl bg-gray-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-50 active:scale-95 transition"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <div class="flex items-center justify-between mt-1.5">
+                            <span id="regFechaTexto" class="text-[11px] text-gray-500 capitalize"></span>
+                            <button type="button" onclick="irAHoyRegistro()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800">Ir a hoy</button>
+                        </div>
                     </div>
 
                     <!-- Insumos -->
@@ -2274,6 +2282,7 @@
             const boton = document.getElementById(`estado_asis_${idLimpio}`);
             if (!boton) return;
             const actual = boton.dataset.estado || 'A';
+            boton.dataset.asisAuto = '0';
             const siguiente = actual === 'A' ? 'ATR' : (actual === 'ATR' ? 'F' : 'A');
             aplicarEstadoAsistencia(boton, siguiente, nombreAttr.replace(/"/g, ''));
             actualizarContadorAsistenciaPantalla();
@@ -2774,6 +2783,7 @@
         }
 
         function guardarFechaCambiada() {
+            actualizarTextoFechaRegistro();
             const asignatura = document.getElementById('selectAsignatura').value;
             const paralelo = document.getElementById('selectParalelo').value;
             const trimestre = document.getElementById('selectTrimestre').value;
@@ -2790,6 +2800,7 @@
             }
 
             guardarLS('notasGuardadasDB', notasGuardadas);
+            aplicarAsistenciaDiariaARegistro();
         }
 
         // --- FUNCIONES DE EVIDENCIA FOTOGRÁFICA ---
@@ -2927,10 +2938,10 @@
             const datosDelInsumo = notasGuardadas[claveDB] || {};
 
             if (datosDelInsumo.fecha) {
-                document.getElementById('inputFecha').value = datosDelInsumo.fecha;
+                document.getElementById('inputFecha').value = datosDelInsumo.fecha; actualizarTextoFechaRegistro();
             } else {
                 const fechaHoy = obtenerFechaActualFormato();
-                document.getElementById('inputFecha').value = fechaHoy;
+                document.getElementById('inputFecha').value = fechaHoy; actualizarTextoFechaRegistro();
                 if (insumo) {
                     notasGuardadas[claveDB] = { fecha: fechaHoy, notas: {}, asistencia: {}, observaciones: {}, evidencias: {} };
                     guardarLS('notasGuardadasDB', notasGuardadas);
@@ -3040,6 +3051,7 @@
                                 <span class="w-6 h-6 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xs flex-shrink-0">${num}</span>
                                 <div class="min-w-0">
                                     <span class="text-xs font-bold text-gray-800 uppercase leading-snug break-words block">${nombreSeguro}</span>
+                                    <span id="asis_marca_${idLimpio}" class="block mt-0.5"></span>
                                     <span id="promedio_${idLimpio}" onclick="event.stopPropagation(); mostrarDetallePromedio('${nombreAttr}')" class="text-[9px] font-black ${claseProm} block mt-0.5 underline decoration-dotted cursor-pointer">Prom: ${textoPromedio}</span>
                                 </div>
                             </button>
@@ -3060,7 +3072,7 @@
                                 <div class="flex items-center gap-1.5 overflow-x-auto py-1 scroll-sin-barra">
 
                                     <!-- Control único de asistencia: un toque alterna Asiste → Atraso → Falta -->
-                                    <button type="button" id="estado_asis_${idLimpio}" data-estado="${asisExistente}" onclick="ciclarAsistencia('${nombreAttr}')" class="asistencia-control flex items-center gap-1 px-2.5 py-1.5 rounded-xl border transition flex-shrink-0 select-none font-bold text-[10px] hover:opacity-80 ${infoEstado.clase}" title="Toca para cambiar: Asiste → Atraso → Falta" aria-label="Asistencia de ${nombreSeguro}: ${infoEstado.texto}. Toca para cambiar.">
+                                    <button type="button" id="estado_asis_${idLimpio}" data-estado="${asisExistente}" data-asis-auto="${(datosDelInsumo.asistencia && datosDelInsumo.asistencia[nombre] !== undefined) ? '0' : '1'}" onclick="ciclarAsistencia('${nombreAttr}')" class="asistencia-control flex items-center gap-1 px-2.5 py-1.5 rounded-xl border transition flex-shrink-0 select-none font-bold text-[10px] hover:opacity-80 ${infoEstado.clase}" title="Toca para cambiar: Asiste → Atraso → Falta" aria-label="Asistencia de ${nombreSeguro}: ${infoEstado.texto}. Toca para cambiar.">
                                         <i class="fa-solid ${infoEstado.icono}"></i> ${infoEstado.texto}
                                     </button>
 
@@ -3083,6 +3095,7 @@
 
             contenedor.innerHTML = filas.join('');
             contextoRenderizado = { asignatura, paralelo, trimestre, insumo };
+            aplicarAsistenciaDiariaARegistro();
             actualizarContadorAsistenciaPantalla();
             actualizarResumenConfiguracion();
         }
@@ -4439,6 +4452,7 @@
 
             if (nombre === 'resumen') renderizarResumen();
             if (nombre === 'asistencia') abrirVistaAsistencia();
+            if (nombre === 'registro') aplicarAsistenciaDiariaARegistro();
             if (nombre === 'reportes') actualizarContextoReportes();
             window.scrollTo({ top: 0 });
         }
@@ -4466,6 +4480,59 @@
             // cambiado justo arriba, después de que renderizarSelectParalelos ya había
             // calculado los insumos con el trimestre anterior.
             renderizarSelectInsumos(ultimo?.insumo || null);
+        }
+
+        // ===== CALENDARIO DEL REGISTRO DE NOTAS (independiente del de Asistencia) =====
+        function actualizarTextoFechaRegistro() {
+            const inp = document.getElementById('inputFecha');
+            const txt = document.getElementById('regFechaTexto');
+            if (!inp || !txt) return;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(inp.value)) { txt.innerText = ''; return; }
+            const [y, m, d] = inp.value.split('-').map(Number);
+            txt.innerText = new Date(y, m - 1, d).toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        function moverFechaRegistro(delta) {
+            const inp = document.getElementById('inputFecha');
+            const base = /^\d{4}-\d{2}-\d{2}$/.test(inp.value) ? inp.value : obtenerFechaActualFormato();
+            const [y, m, d] = base.split('-').map(Number);
+            const f = new Date(y, m - 1, d + delta);
+            inp.value = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`;
+            guardarFechaCambiada();
+        }
+        function irAHoyRegistro() {
+            document.getElementById('inputFecha').value = obtenerFechaActualFormato();
+            guardarFechaCambiada();
+        }
+
+        // Muestra en cada alumno lo que se tomó en Asistencia para la fecha de este insumo.
+        // Solo es visual, salvo en alumnos de un insumo que aún no tiene asistencia guardada:
+        // ahí el control de asistencia arranca con Atraso/Falta en lugar de Asiste.
+        // No modifica nada de lo ya guardado.
+        function aplicarAsistenciaDiariaARegistro() {
+            const asignatura = document.getElementById('selectAsignatura').value;
+            const paralelo = document.getElementById('selectParalelo').value;
+            const inp = document.getElementById('inputFecha');
+            if (!paralelo || !inp) return;
+            const fecha = inp.value;
+            const registro = (asistenciaDiaria[`${asignatura}_${paralelo}`] || {})[fecha] || null;
+            (estudiantesData[paralelo] || []).forEach(nombre => {
+                const id = idAlumno(nombre);
+                const marca = document.getElementById(`asis_marca_${id}`);
+                const boton = document.getElementById(`estado_asis_${id}`);
+                if (!marca && !boton) return;
+                const cod = registro ? registro[nombre] : null;
+                const inf = ESTADOS_ASISTENCIA[cod];
+                if (marca) {
+                    marca.innerHTML = (inf && cod !== 'A')
+                        ? `<span title="Tomado en Asistencia el ${escapeHtml(fecha)}" class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded-md border ${inf.activo}"><i class="fa-solid fa-calendar-check"></i> ${cod === 'ATR' ? 'Atraso' : inf.texto}</span>`
+                        : '';
+                }
+                if (boton && boton.dataset.asisAuto === '1') {
+                    const estado = cod === 'ATR' ? 'ATR' : ((cod === 'FJ' || cod === 'FI') ? 'F' : 'A');
+                    aplicarEstadoAsistencia(boton, estado, String(nombre).replace(/"/g, ''));
+                }
+            });
+            actualizarContadorAsistenciaPantalla();
         }
 
         // ===== MENÚ LATERAL =====
