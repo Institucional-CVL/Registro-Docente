@@ -111,17 +111,12 @@
         .splash-dots-wrap { margin-top: 1.25rem; display: flex; gap: 0.4rem; }
         .splash-dot { width: 0.5rem; height: 0.5rem; background: rgba(255,255,255,0.7); border-radius: 9999px; }
 
-        /* ===== Navegación inferior ===== */
-        #barraNavegacion { padding-bottom: env(safe-area-inset-bottom, 0px); }
-        /* La barra de Guardar queda justo encima de la navegación (56px + borde de 2px + zona segura) */
-        #barraGuardar { bottom: calc(3.5rem + 2px + env(safe-area-inset-bottom, 0px)); }
-        .nav-item { color: #9ca3af; }
-        .nav-item:hover { color: #6366f1; }
-        .nav-item.activa {
-            color: #4338ca;
-            background: linear-gradient(to top, #eef2ff, rgba(238,242,255,0));
-            box-shadow: inset 0 3px 0 #4f46e5;
-        }
+        /* ===== Menú lateral (izquierda) ===== */
+        #barraNavegacion { padding-bottom: env(safe-area-inset-bottom, 0px); overflow-y: auto; }
+        #barraGuardar { bottom: env(safe-area-inset-bottom, 0px); }
+        .nav-item { color: #6b7280; }
+        .nav-item:hover { color: #4f46e5; background: #f5f7ff; }
+        .nav-item.activa { color: #4338ca; background: #eef2ff; box-shadow: inset 4px 0 0 #4f46e5; }
 
         /* ===== Selector de tipo de insumo (ventana) ===== */
         .opcion-tipo { border: 2px solid #e5e7eb; background: #ffffff; }
@@ -228,7 +223,10 @@
     <!-- CONTENIDO PRINCIPAL -->
     <div id="app-contenido" class="hidden">
         <header class="bg-indigo-700 text-white p-4 shadow-lg sticky top-0 z-50">
-            <div class="max-w-md mx-auto flex justify-between items-center">
+            <div class="max-w-md mx-auto flex items-center gap-3">
+                <button type="button" id="botonMenu" onclick="abrirMenu()" aria-label="Abrir menú" class="flex-shrink-0 w-10 h-10 -ml-1 flex items-center justify-center rounded-xl hover:bg-white/10 active:scale-95 transition">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
                 <div>
                     <h1 id="tituloInstitucion" contenteditable="true" class="text-lg font-bold tracking-wide outline-none">
                         UE Clemente Vallejo Larrea
@@ -481,6 +479,49 @@
             </div>
         </section>
 
+        <!-- ===== VISTA: ASISTENCIA (por fecha; datos propios, no toca las notas guardadas) ===== -->
+        <section id="vista-asistencia" class="hidden">
+            <div class="max-w-md mx-auto p-4 space-y-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-blue-200 border-t-4 border-t-emerald-500 p-4 space-y-3">
+                    <p class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide flex items-center gap-2"><i class="fa-solid fa-user-check text-emerald-600"></i> Asistencia</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label for="asistAsig" class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Asignatura</label>
+                            <select id="asistAsig" onchange="cambiarAsistAsig(this.value)" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
+                        </div>
+                        <div>
+                            <label for="asistPar" class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Paralelo</label>
+                            <select id="asistPar" onchange="cambiarAsistPar(this.value)" class="w-full bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="asistFecha" class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Fecha</label>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="moverFechaAsistencia(-1)" aria-label="Día anterior" class="w-10 h-10 flex-shrink-0 rounded-xl bg-gray-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-50 active:scale-95 transition"><i class="fa-solid fa-chevron-left"></i></button>
+                            <input type="date" id="asistFecha" onchange="cambiarFechaAsistencia(this.value)" class="flex-1 min-w-0 bg-gray-50 border border-indigo-200 text-indigo-950 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs shadow-sm">
+                            <button type="button" onclick="moverFechaAsistencia(1)" aria-label="Día siguiente" class="w-10 h-10 flex-shrink-0 rounded-xl bg-gray-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-50 active:scale-95 transition"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <div class="flex items-center justify-between mt-1.5">
+                            <span id="asistFechaTexto" class="text-[11px] text-gray-500 capitalize"></span>
+                            <button type="button" onclick="irAHoyAsistencia()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800">Ir a hoy</button>
+                        </div>
+                    </div>
+                    <div id="asistResumen" class="grid grid-cols-4 gap-1.5"></div>
+                    <p class="text-[10px] text-gray-400">FJ = falta justificada · FI = falta injustificada</p>
+                </div>
+                <div id="listaAsistencia" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <div id="barraGuardarAsistencia" class="hidden fixed left-0 right-0 bottom-0 px-4 py-2 bg-white/95 backdrop-blur border-t-2 border-indigo-200 shadow-lg z-40" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));">
+            <div class="max-w-md mx-auto flex items-center justify-between gap-3">
+                <span id="asistIndicador" class="text-[10px] text-gray-400 font-semibold leading-tight">Sin registrar para esta fecha</span>
+                <button type="button" onclick="guardarAsistencia()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md flex justify-center items-center gap-2 text-sm active:scale-95 transition flex-shrink-0">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar asistencia
+                </button>
+            </div>
+        </div>
+
         <!-- Barra inferior compacta para guardar (solo se ve en Registro; queda justo encima de la navegación) -->
         <div id="barraGuardar" class="fixed left-0 right-0 px-4 py-2 bg-white/95 backdrop-blur border-t-2 border-indigo-200 shadow-lg z-40">
             <div class="max-w-md mx-auto flex items-center justify-between gap-3">
@@ -491,25 +532,33 @@
             </div>
         </div>
 
-        <!-- Barra de navegación inferior -->
-        <nav id="barraNavegacion" class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t-2 border-indigo-200 shadow-lg" aria-label="Navegación principal">
-            <div class="max-w-md mx-auto flex h-14">
-                <button type="button" data-vista="registro" onclick="cambiarVista('registro')" class="nav-item activa flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Registro" aria-current="page">
-                    <i class="fa-solid fa-table-list text-lg"></i><span>Registro</span>
-                </button>
-                <button type="button" data-vista="resumen" onclick="cambiarVista('resumen')" class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Calificaciones">
-                    <i class="fa-solid fa-chart-column text-lg"></i><span>Calificaciones</span>
-                </button>
-                <button type="button" data-vista="reportes" onclick="cambiarVista('reportes')" class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Reportes">
-                    <i class="fa-solid fa-file-excel text-lg"></i><span>Reportes</span>
-                </button>
-                <button type="button" data-vista="cuenta" onclick="cambiarVista('cuenta')" class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition" aria-label="Cuenta">
-                    <span class="relative inline-block">
-                        <i class="fa-solid fa-circle-user text-lg"></i>
-                        <span id="puntoSyncNav" class="hidden absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full border border-white"></span>
-                    </span>
-                    <span>Cuenta</span>
-                </button>
+        <!-- Menú lateral izquierdo -->
+        <div id="menuFondo" class="hidden fixed inset-0 bg-black/40 z-[90]" onclick="cerrarMenu()"></div>
+        <nav id="barraNavegacion" class="fixed top-0 left-0 bottom-0 w-64 max-w-[80%] z-[100] bg-white shadow-2xl border-r-2 border-indigo-200 flex flex-col transition-transform duration-200 -translate-x-full" aria-label="Navegación principal">
+            <div class="bg-indigo-700 text-white px-4 pb-4 flex items-center justify-between" style="padding-top: max(1rem, env(safe-area-inset-top, 0px));">
+                <span class="font-bold text-sm tracking-wide flex items-center gap-2"><i class="fa-solid fa-graduation-cap text-yellow-300"></i> Menú</span>
+                <button type="button" onclick="cerrarMenu()" aria-label="Cerrar menú" class="p-1 text-indigo-100 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="flex-1 py-2">
+                    <button type="button" data-vista="registro" onclick="cambiarVista('registro')" class="nav-item activa w-full flex items-center gap-3 px-5 py-3.5 text-sm font-bold transition text-left" aria-label="Registro">
+                        <i class="fa-solid fa-table-list text-lg w-6 text-center"></i><span>Registro</span>
+                    </button>
+                    <button type="button" data-vista="asistencia" onclick="cambiarVista('asistencia')" class="nav-item w-full flex items-center gap-3 px-5 py-3.5 text-sm font-bold transition text-left" aria-label="Asistencia">
+                        <i class="fa-solid fa-user-check text-lg w-6 text-center"></i><span>Asistencia</span>
+                    </button>
+                    <button type="button" data-vista="resumen" onclick="cambiarVista('resumen')" class="nav-item w-full flex items-center gap-3 px-5 py-3.5 text-sm font-bold transition text-left" aria-label="Calificaciones">
+                        <i class="fa-solid fa-chart-column text-lg w-6 text-center"></i><span>Calificaciones</span>
+                    </button>
+                    <button type="button" data-vista="reportes" onclick="cambiarVista('reportes')" class="nav-item w-full flex items-center gap-3 px-5 py-3.5 text-sm font-bold transition text-left" aria-label="Reportes">
+                        <i class="fa-solid fa-file-excel text-lg w-6 text-center"></i><span>Reportes</span>
+                    </button>
+                    <button type="button" data-vista="cuenta" onclick="cambiarVista('cuenta')" class="nav-item w-full flex items-center gap-3 px-5 py-3.5 text-sm font-bold transition text-left" aria-label="Cuenta">
+                        <span class="relative inline-block w-6 text-center">
+                            <i class="fa-solid fa-circle-user text-lg"></i>
+                            <span id="puntoSyncNav" class="hidden absolute -top-0.5 right-0 w-2.5 h-2.5 rounded-full border border-white"></span>
+                        </span>
+                        <span>Cuenta</span>
+                    </button>
             </div>
         </nav>
     </div>
@@ -1104,6 +1153,11 @@
                         guardarLS('insumosNoAplican', insumosNoAplican);
                     }
 
+                    if (data.asistenciaDiaria) {
+                        asistenciaDiaria = data.asistenciaDiaria;
+                        guardarLS('asistenciaDiaria', asistenciaDiaria);
+                    }
+
                     renderizarSelectAsignaturas();
                     renderizarSelectParalelos();
                     renderizarSelectInsumos();
@@ -1161,6 +1215,8 @@
         // Insumos que NO le aplican a un estudiante porque ingresó después de que ya se habían calificado:
         // { "Asig_Paralelo_Trimestre_Insumo": { "Nombre Alumno": true } }
         let insumosNoAplican = cargarLS('insumosNoAplican', {});
+        // Asistencia diaria (módulo propio): { "Asignatura_Paralelo": { "AAAA-MM-DD": { "Alumno": "A|ATR|FJ|FI" } } }
+        let asistenciaDiaria = cargarLS('asistenciaDiaria', {});
         // Recuerda el último contexto (asignatura/paralelo/trimestre/insumo) que estaba
         // realmente pintado en pantalla, para poder guardarlo automáticamente si el
         // usuario cambia de selección sin pulsar "Guardar" (evita pérdida de datos).
@@ -2293,6 +2349,11 @@
                 });
                 Object.keys(rubricaExcepcionAlumno).forEach(clave => { if (clave.startsWith(prefijo)) mover(rubricaExcepcionAlumno[clave]); });
                 Object.keys(insumosNoAplican).forEach(clave => { if (clave.startsWith(prefijo)) mover(insumosNoAplican[clave]); });
+                const kAsis = `${asig}_${paralelo}`;
+                if (asistenciaDiaria[kAsis]) {
+                    Object.keys(asistenciaDiaria[kAsis]).forEach(f => mover(asistenciaDiaria[kAsis][f]));
+                    guardarLS('asistenciaDiaria', asistenciaDiaria);
+                }
             });
             guardarLS('notasGuardadasDB', notasGuardadas);
             guardarLS('rubricaExcepcionAlumno', rubricaExcepcionAlumno);
@@ -3145,6 +3206,7 @@
                     rubricaAsignadaInsumo: rubricaAsignadaInsumo,
                     rubricaExcepcionAlumno: rubricaExcepcionAlumno,
                     insumosNoAplican: insumosNoAplican,
+                    asistenciaDiaria: asistenciaDiaria,
                     ultimoContextoUsado: { asignatura, paralelo, trimestre, insumo },
                     ultimaActualizacion: new Date().toLocaleString()
                 }, { merge: true })
@@ -4356,7 +4418,7 @@
 
         let vistaActual = 'registro';
         function cambiarVista(nombre) {
-            const vistas = ['registro', 'resumen', 'reportes', 'cuenta'];
+            const vistas = ['registro', 'asistencia', 'resumen', 'reportes', 'cuenta'];
             if (!vistas.includes(nombre)) return;
 
             // Al salir de Registro se guarda en silencio lo que haya en pantalla (igual que al cambiar de insumo).
@@ -4367,6 +4429,8 @@
 
             vistas.forEach(v => document.getElementById(`vista-${v}`).classList.toggle('hidden', v !== nombre));
             document.getElementById('barraGuardar').classList.toggle('hidden', nombre !== 'registro');
+            document.getElementById('barraGuardarAsistencia').classList.toggle('hidden', nombre !== 'asistencia');
+            cerrarMenu();
             document.querySelectorAll('#barraNavegacion .nav-item').forEach(b => {
                 const activa = b.dataset.vista === nombre;
                 b.classList.toggle('activa', activa);
@@ -4374,6 +4438,7 @@
             });
 
             if (nombre === 'resumen') renderizarResumen();
+            if (nombre === 'asistencia') abrirVistaAsistencia();
             if (nombre === 'reportes') actualizarContextoReportes();
             window.scrollTo({ top: 0 });
         }
@@ -4401,6 +4466,186 @@
             // cambiado justo arriba, después de que renderizarSelectParalelos ya había
             // calculado los insumos con el trimestre anterior.
             renderizarSelectInsumos(ultimo?.insumo || null);
+        }
+
+        // ===== MENÚ LATERAL =====
+        function abrirMenu() {
+            document.getElementById('barraNavegacion').classList.remove('-translate-x-full');
+            document.getElementById('menuFondo').classList.remove('hidden');
+        }
+        function cerrarMenu() {
+            const menu = document.getElementById('barraNavegacion');
+            const fondo = document.getElementById('menuFondo');
+            if (menu) menu.classList.add('-translate-x-full');
+            if (fondo) fondo.classList.add('hidden');
+        }
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarMenu(); });
+
+        // ===== ASISTENCIA POR FECHA =====
+        // Módulo independiente: guarda en 'asistenciaDiaria' y NO modifica notasGuardadas.
+        const ESTADOS_ASISTENCIA = {
+            A:   { texto: 'Asiste', icono: 'fa-circle-check', activo: 'bg-emerald-100 border-emerald-400 text-emerald-800' },
+            ATR: { texto: 'Atraso', icono: 'fa-clock',        activo: 'bg-orange-100 border-orange-400 text-orange-800' },
+            FJ:  { texto: 'FJ',     icono: '',                activo: 'bg-sky-100 border-sky-400 text-sky-800' },
+            FI:  { texto: 'FI',     icono: '',                activo: 'bg-red-100 border-red-400 text-rose-800' }
+        };
+        const ORDEN_ASISTENCIA = ['A', 'ATR', 'FJ', 'FI'];
+        let asistVista = { asignatura: '', paralelo: '', fecha: '', lista: [], mapa: {}, registrado: false };
+
+        function claveAsistencia() { return `${asistVista.asignatura}_${asistVista.paralelo}`; }
+
+        function abrirVistaAsistencia() {
+            if (!asistVista.fecha) asistVista.fecha = obtenerFechaActualFormato();
+            const asigReg = document.getElementById('selectAsignatura').value || '';
+            const parReg = document.getElementById('selectParalelo').value || '';
+            if (!listaAsignaturas.includes(asistVista.asignatura)) asistVista.asignatura = listaAsignaturas.includes(asigReg) ? asigReg : (listaAsignaturas[0] || '');
+            const paralelos = asignaturasParalelos[asistVista.asignatura] || [];
+            if (!paralelos.includes(asistVista.paralelo)) asistVista.paralelo = paralelos.includes(parReg) ? parReg : (paralelos[0] || '');
+            pintarSelectsAsistencia();
+            cargarAsistenciaDelDia();
+        }
+
+        function pintarSelectsAsistencia() {
+            const sa = document.getElementById('asistAsig');
+            const sp = document.getElementById('asistPar');
+            sa.innerHTML = listaAsignaturas.length
+                ? listaAsignaturas.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('')
+                : '<option value="">Sin asignaturas</option>';
+            sa.value = asistVista.asignatura;
+            const paralelos = asignaturasParalelos[asistVista.asignatura] || [];
+            sp.innerHTML = paralelos.length
+                ? paralelos.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('')
+                : '<option value="">Sin paralelos</option>';
+            sp.value = asistVista.paralelo;
+            document.getElementById('asistFecha').value = asistVista.fecha;
+            const [y, m, d] = asistVista.fecha.split('-').map(Number);
+            document.getElementById('asistFechaTexto').innerText = new Date(y, m - 1, d).toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        function cambiarAsistAsig(valor) {
+            asistVista.asignatura = valor;
+            const paralelos = asignaturasParalelos[valor] || [];
+            asistVista.paralelo = paralelos.includes(asistVista.paralelo) ? asistVista.paralelo : (paralelos[0] || '');
+            pintarSelectsAsistencia();
+            cargarAsistenciaDelDia();
+        }
+        function cambiarAsistPar(valor) { asistVista.paralelo = valor; cargarAsistenciaDelDia(); }
+        function cambiarFechaAsistencia(valor) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) { document.getElementById('asistFecha').value = asistVista.fecha; return; }
+            asistVista.fecha = valor;
+            pintarSelectsAsistencia();
+            cargarAsistenciaDelDia();
+        }
+        function moverFechaAsistencia(delta) {
+            const [y, m, d] = asistVista.fecha.split('-').map(Number);
+            const f = new Date(y, m - 1, d + delta);
+            cambiarFechaAsistencia(`${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`);
+        }
+        function irAHoyAsistencia() { cambiarFechaAsistencia(obtenerFechaActualFormato()); }
+
+        // Lee lo guardado para ese curso y fecha; si no hay nada, todos quedan en "Asiste".
+        function cargarAsistenciaDelDia() {
+            const registro = (asistenciaDiaria[claveAsistencia()] || {})[asistVista.fecha];
+            asistVista.registrado = !!registro;
+            asistVista.lista = ordenarNomina((estudiantesData[asistVista.paralelo] || []).slice());
+            asistVista.mapa = {};
+            asistVista.lista.forEach(n => {
+                const e = registro && registro[n];
+                asistVista.mapa[n] = ESTADOS_ASISTENCIA[e] ? e : 'A';
+            });
+            renderizarAsistencia();
+        }
+
+        function botonesAsistenciaHtml(i) {
+            const nombre = asistVista.lista[i];
+            const actual = asistVista.mapa[nombre] || 'A';
+            return ORDEN_ASISTENCIA.map(cod => {
+                const inf = ESTADOS_ASISTENCIA[cod];
+                const activo = cod === actual;
+                const clase = activo ? inf.activo : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50';
+                const icono = inf.icono ? `<i class="fa-solid ${inf.icono}"></i> ` : '';
+                return `<button type="button" onclick="marcarAsistencia(${i}, '${cod}')" aria-pressed="${activo}" aria-label="${escapeHtml(nombre)}: ${inf.texto}" class="flex items-center justify-center gap-1 py-2 rounded-xl border-2 font-bold text-[11px] transition select-none ${clase}">${icono}${inf.texto}</button>`;
+            }).join('');
+        }
+
+        function renderizarAsistencia() {
+            const cont = document.getElementById('listaAsistencia');
+            if (!asistVista.paralelo) {
+                cont.innerHTML = `<div class="p-8 text-center text-gray-400 text-sm bg-white rounded-2xl border border-gray-100"><i class="fa-solid fa-layer-group text-2xl mb-2 block text-gray-300"></i>Selecciona una asignatura con paralelo.</div>`;
+                actualizarResumenAsistencia();
+                return;
+            }
+            if (!asistVista.lista.length) {
+                cont.innerHTML = `<div class="p-8 text-center text-gray-400 text-sm bg-white rounded-2xl border border-gray-100"><i class="fa-solid fa-user-group text-2xl mb-2 block text-gray-300"></i>No hay alumnos en ${escapeHtml(asistVista.paralelo)}.<br>Agrégalos desde Registro.</div>`;
+                actualizarResumenAsistencia();
+                return;
+            }
+            cont.innerHTML = asistVista.lista.map((nombre, i) => `
+                <div class="bg-white rounded-2xl border border-indigo-100 shadow-sm p-3">
+                    <p class="text-xs font-black text-gray-800 uppercase leading-snug break-words mb-2"><span class="text-gray-400 mr-1">${i + 1}.</span>${escapeHtml(nombre)}</p>
+                    <div id="asistFila_${i}" class="grid grid-cols-4 gap-1.5">${botonesAsistenciaHtml(i)}</div>
+                </div>`).join('');
+            actualizarResumenAsistencia();
+        }
+
+        function actualizarResumenAsistencia() {
+            const cuenta = { A: 0, ATR: 0, FJ: 0, FI: 0 };
+            asistVista.lista.forEach(n => { cuenta[asistVista.mapa[n] || 'A']++; });
+            document.getElementById('asistResumen').innerHTML = ORDEN_ASISTENCIA.map(cod => {
+                const inf = ESTADOS_ASISTENCIA[cod];
+                return `<div class="rounded-xl border px-1 py-1.5 text-center ${inf.activo}"><div class="text-base font-black leading-none">${cuenta[cod]}</div><div class="text-[9px] font-bold uppercase mt-0.5">${inf.texto}</div></div>`;
+            }).join('');
+            const ind = document.getElementById('asistIndicador');
+            if (ind) ind.innerText = asistVista.registrado ? 'Registrado en este dispositivo' : 'Sin registrar para esta fecha';
+        }
+
+        function marcarAsistencia(i, cod) {
+            const nombre = asistVista.lista[i];
+            if (nombre === undefined) return;
+            asistVista.mapa[nombre] = cod;
+            guardarAsistenciaLocal();
+            const fila = document.getElementById(`asistFila_${i}`);
+            if (fila) fila.innerHTML = botonesAsistenciaHtml(i);
+            actualizarResumenAsistencia();
+        }
+
+        // Se guarda en este dispositivo en cada toque (así no se pierde nada al salir de la pantalla).
+        function guardarAsistenciaLocal() {
+            if (!asistVista.paralelo || !asistVista.lista.length) return false;
+            const k = claveAsistencia();
+            if (!asistenciaDiaria[k]) asistenciaDiaria[k] = {};
+            asistenciaDiaria[k][asistVista.fecha] = Object.assign({}, asistVista.mapa);
+            asistVista.registrado = true;
+            return guardarLS('asistenciaDiaria', asistenciaDiaria);
+        }
+
+        // El botón confirma el día y lo sube a la nube (solo el campo asistenciaDiaria).
+        function guardarAsistencia() {
+            if (!asistVista.paralelo || !asistVista.lista.length) {
+                mostrarToast('Selecciona un curso con alumnos primero.', 'error');
+                return;
+            }
+            guardarAsistenciaLocal();
+            actualizarResumenAsistencia();
+            if (!usuarioActual) {
+                mostrarToast('Asistencia guardada en este dispositivo.', 'exito');
+                return;
+            }
+            actualizarEstadoSync('sincronizando');
+            db.collection("notas_profesor").doc(usuarioActual.uid).set({
+                asistenciaDiaria: asistenciaDiaria,
+                ultimaActualizacion: new Date().toLocaleString()
+            }, { merge: true })
+            .then(() => {
+                actualizarEstadoSync('sincronizado');
+                const ind = document.getElementById('asistIndicador');
+                if (ind) ind.innerText = 'Sincronizado con la nube';
+                mostrarToast(`Asistencia guardada: ${asistVista.paralelo} · ${asistVista.fecha}.`, 'exito');
+            })
+            .catch((error) => {
+                actualizarEstadoSync('error');
+                mostrarToast(`Guardada localmente. No se pudo sincronizar: ${error.message}`, 'error', 5000);
+            });
         }
 
         window.onload = function() {
